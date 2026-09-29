@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BuildVerse Studio</title>
+<meta name="description" content="BuildVerse Studio — plot land, generate a blueprint, see it in 3D, check earthquake safety and predict cost with an in-browser neural network.">
+<meta name="theme-color" content="#123A73">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: an engineering drawing set — title-block header, numbered sheets (C-01 → Q-01), spec column beside a live drawing */
+:root {
+  --paper: #EDF0EC;
+  --sheet: #FBFCFA;
+  --ink: #14233A;
+  --ink-2: #4B5B70;
+  --ink-3: #6B7A8D;
+  --rule: #CBD3D8;
+  --rule-2: #E2E7E7;
+  --blue: #1C5DB8;
+  --blue-soft: #DCE7F7;
+  --amber: #C97A06;
+  --amber-soft: #FBEBD0;
+  --print: #123A73;
+  --print-2: #16457F;
+  --print-line: #E6EFFF;
+  --print-dim: #A9C3EC;
+  --ok: #23804A; --ok-soft: #DDF0E3;
+  --warn: #A86400; --warn-soft: #FBEBD0;
+  --bad: #BE3A2E; --bad-soft: #F8DEDA;
+  --display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0B1320; --sheet: #111C2E; --ink: #E4EAF3; --ink-2: #A6B4C7; --ink-3: #8090A6;
+    --rule: #26364D; --rule-2: #1B283B; --blue: #6AA2FF; --blue-soft: #16294A; --amber: #F0A733; --amber-soft: #3A2A10;
+    --print: #0D2A55; --print-2: #11356A; --print-line: #E6EFFF; --print-dim: #9DB9E6;
+    --ok: #4CC27A; --ok-soft: #10301D; --warn: #F0A733; --warn-soft: #3A2A10; --bad: #F27A6E; --bad-soft: #3A1614;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0B1320; --sheet: #111C2E; --ink: #E4EAF3; --ink-2: #A6B4C7; --ink-3: #8090A6;
+  --rule: #26364D; --rule-2: #1B283B; --blue: #6AA2FF; --blue-soft: #16294A; --amber: #F0A733; --amber-soft: #3A2A10;
+  --print: #0D2A55; --print-2: #11356A; --print-line: #E6EFFF; --print-dim: #9DB9E6;
+  --ok: #4CC27A; --ok-soft: #10301D; --warn: #F0A733; --warn-soft: #3A2A10; --bad: #F27A6E; --bad-soft: #3A1614;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper); color: var(--ink);
+  font: 15px/1.5 var(--body);
+  padding-inline: 16px; padding-block: 0 40px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1240px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: 0.01em; text-wrap: balance; margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- title block ---------- */
+.tb {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 0; align-items: stretch;
+  border: 1.5px solid var(--ink); border-top: 0; background: var(--sheet);
+  margin-top: 0; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+}
+.tb > * { padding: 10px 14px; min-width: 0; }
+.tb .brand { display: flex; gap: 12px; align-items: center; border-right: 1.5px solid var(--ink); }
+.tb .brand img { width: 52px; height: 37px; object-fit: cover; border-radius: 3px; background: #1a2230; }
+.tb .brand h1 { font-size: 26px; line-height: 1; font-weight: 700; }
+.tb .brand h1 b { color: var(--blue); font-weight: 700; }
+.tb .brand small { display: block; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-top: 3px; }
+.summary { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; }
+.summary .kv { display: flex; flex-direction: column; min-width: 0; }
+.summary .k { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.summary .v { font-family: var(--mono); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.tb .play {
+  display: flex; align-items: center; gap: 8px; border-left: 1.5px solid var(--ink);
+  background: var(--ink); color: var(--sheet); text-decoration: none; font-family: var(--display); font-size: 18px; font-weight: 600; letter-spacing: 0.02em;
+}
+.tb .play:hover { background: var(--blue); }
+.tb .play svg { width: 18px; height: 18px; }
+
+/* ---------- sheet tabs ---------- */
+.tabs { display: flex; gap: 0; overflow-x: auto; border-bottom: 1.5px solid var(--ink); margin-top: 14px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto; border: 0; background: transparent; cursor: pointer; padding: 8px 16px 9px; text-align: left;
+  border-bottom: 3px solid transparent; margin-bottom: -1.5px; color: var(--ink-2);
+}
+.tab .no { display: block; font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; }
+.tab .nm { font-family: var(--display); font-size: 19px; font-weight: 600; line-height: 1.1; }
+.tab[aria-selected="true"] { border-bottom-color: var(--amber); color: var(--ink); }
+.tab[aria-selected="true"] .no { color: var(--amber); }
+.tab:hover { color: var(--ink); }
+
+/* ---------- sheet layout ---------- */
+.sheet { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+.sheet[hidden] { display: none !important; }
+.spec { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.draw { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--r); padding: 14px 16px; min-width: 0; }
+.panel h2 { font-size: 20px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.panel h2 .tag { font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--ink-3); letter-spacing: 0.04em; }
+.panel h3 { font-size: 16px; margin: 14px 0 6px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; }
+.lede { color: var(--ink-2); margin: 0 0 4px; font-size: 14px; }
+.note { color: var(--ink-3); font-size: 12.5px; margin: 8px 0 0; }
+
+/* ---------- form controls ---------- */
+.field { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; margin-bottom: 10px; }
+.field label { font-size: 13.5px; color: var(--ink-2); }
+.field .out { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+.field input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--blue); }
+.field select, .field input[type="number"] {
+  grid-column: 1 / -1; width: 100%; padding: 7px 9px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper);
+}
+.seg { display: flex; border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; background: var(--paper); }
+.seg button { flex: 1; border: 0; background: transparent; padding: 7px 6px; cursor: pointer; font-size: 13.5px; color: var(--ink-2); }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--ink-2); margin: 6px 0 10px; cursor: pointer; }
+.check input { accent-color: var(--blue); margin-top: 3px; }
+.btn {
+  border: 1px solid var(--ink); background: var(--ink); color: var(--sheet); padding: 8px 14px; border-radius: var(--r);
+  cursor: pointer; font-family: var(--display); font-size: 16px; font-weight: 600; letter-spacing: 0.02em;
+}
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+.btn:hover { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- key figures ---------- */
+.figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; }
+.fig { background: var(--sheet); padding: 10px 12px; min-width: 0; }
+.fig .k { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.fig .v { font-family: var(--mono); font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.fig .s { font-size: 12px; color: var(--ink-3); }
+.hero-num { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.hero-num .v { font-family: var(--display); font-size: 46px; font-weight: 700; line-height: 1; }
+.hero-num .u { color: var(--ink-2); font-size: 15px; }
+
+/* ---------- tables ---------- */
+.tscroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th { text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); padding: 6px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+td { padding: 6px 8px; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+th.n { text-align: right; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.chip svg { width: 11px; height: 11px; }
+
+/* ---------- drawings ---------- */
+.paperdraw { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; }
+.paperdraw svg { display: block; width: 100%; height: auto; max-height: 72vh; touch-action: none; }
+.blueprint { background: var(--print); border-radius: var(--r); overflow: hidden; border: 1px solid var(--print-2); }
+.blueprint svg { display: block; width: 100%; height: auto; max-height: 78vh; }
+.titlestrip { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); border-top: 1px solid var(--print-dim); color: var(--print-line); }
+.titlestrip > div { padding: 6px 10px; border-right: 1px solid rgba(169,195,236,0.35); min-width: 0; }
+.titlestrip > div:last-child { border-right: 0; }
+.titlestrip .k { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--print-dim); }
+.titlestrip .v { font-family: var(--mono); font-size: 12.5px; }
+svg text { font-family: var(--body); }
+.sv-grid { stroke: var(--rule-2); }
+.sv-grid.b { stroke: var(--rule); }
+.sv-plot { fill: var(--blue-soft); stroke: var(--ink); }
+.sv-set { fill: none; stroke: var(--amber); stroke-dasharray: 1.2 0.8; }
+.sv-foot { fill: url(#hatch); stroke: var(--blue); }
+.sv-road { fill: var(--ink-3); opacity: 0.25; }
+.sv-t { fill: var(--ink); }
+.sv-t2 { fill: var(--ink-2); }
+.sv-dim { stroke: var(--ink-2); fill: none; }
+.sv-v { fill: var(--sheet); stroke: var(--blue); cursor: grab; }
+.sv-edge { fill: var(--sheet); stroke: none; }
+.bp-wall { fill: none; stroke: var(--print-line); }
+.bp-fill { stroke: none; }
+.bp-cut { stroke: var(--print); }
+.bp-thin { stroke: var(--print-line); fill: none; }
+.bp-dim { stroke: var(--print-dim); fill: none; }
+.bp-t { fill: var(--print-line); }
+.bp-t2 { fill: var(--print-dim); }
+
+/* ---------- 3D ---------- */
+.stage { position: relative; background: #cfe1f2; border-radius: var(--r); overflow: hidden; border: 1px solid var(--rule); }
+.stage canvas { display: block; width: 100%; height: min(62vh, 560px); cursor: grab; }
+.stage .hud { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.stage .hud span { background: rgba(10, 20, 36, 0.72); color: #EAF1FB; font-family: var(--mono); font-size: 12px; padding: 3px 8px; border-radius: 4px; }
+.stage .err { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; color: #14233A; }
+
+/* ---------- charts ---------- */
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.c-grid { stroke: var(--rule-2); }
+.c-axis { stroke: var(--rule); }
+.c-lbl { fill: var(--ink-3); font-size: 11px; font-family: var(--mono); }
+.c-ttl { fill: var(--ink-2); font-size: 11.5px; }
+.c-l1 { stroke: var(--blue); fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.c-l2 { stroke: var(--amber); fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.c-a1 { fill: var(--blue); opacity: 0.1; }
+.c-dot1 { fill: var(--blue); stroke: var(--sheet); stroke-width: 2; }
+.c-dot2 { fill: var(--amber); stroke: var(--sheet); stroke-width: 2; }
+.c-mk { fill: var(--amber); stroke: var(--sheet); stroke-width: 2; }
+.c-mkline { stroke: var(--amber); stroke-dasharray: 3 3; }
+.c-hair { stroke: var(--ink-3); stroke-dasharray: 2 3; }
+.c-tipbg { fill: var(--ink); }
+.c-tip { fill: var(--sheet); font-size: 11.5px; font-family: var(--mono); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); margin-bottom: 4px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.bars { display: grid; grid-template-columns: minmax(90px, max-content) minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; font-size: 13px; }
+.bars .bl { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bars .bt { height: 12px; background: var(--rule-2); border-radius: 0 4px 4px 0; position: relative; }
+.bars .bf { position: absolute; left: 0; top: 0; bottom: 0; background: var(--blue); border-radius: 0 4px 4px 0; transition: width 0.4s ease; }
+.bars .bf.amber { background: var(--amber); }
+.bars .bv { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12.5px; text-align: right; white-space: nowrap; }
+.gantt { display: grid; grid-template-columns: minmax(110px, max-content) minmax(0, 1fr); gap: 6px 10px; align-items: center; font-size: 13px; }
+.gantt .gl { color: var(--ink-2); white-space: nowrap; }
+.gantt .gt { position: relative; height: 14px; background: repeating-linear-gradient(90deg, var(--rule-2) 0 1px, transparent 1px calc(100% / var(--m))); }
+.gantt .gb { position: absolute; top: 0; bottom: 0; background: var(--blue); border-radius: 4px; }
+.gantt .gb.amber { background: var(--amber); }
+.gantt .gx { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+
+/* ---------- safety ---------- */
+.meter { position: relative; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--bad) 0 50%, var(--warn) 50% 65%, var(--amber) 65% 80%, var(--ok) 80% 100%); opacity: 0.9; margin: 10px 0 4px; }
+.meter i { position: absolute; top: -5px; width: 4px; height: 22px; background: var(--ink); border-radius: 2px; transform: translateX(-2px); transition: left 0.4s ease; }
+.meter-l { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+.factors { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.factors li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; font-size: 13.5px; align-items: baseline; }
+.factors .d { font-family: var(--mono); font-weight: 600; color: var(--bad); text-align: right; }
+.factors .d.zero { color: var(--ok); }
+.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.checklist li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; font-size: 13.5px; }
+.checklist li svg { width: 16px; height: 16px; margin-top: 2px; }
+.checklist .hi { color: var(--ink); font-weight: 600; }
+.cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+
+/* ---------- AI ---------- */
+.trainbar { height: 6px; background: var(--rule-2); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.trainbar i { display: block; height: 100%; width: 0; background: var(--blue); transition: width 0.1s linear; }
+.ai-badge { display: inline-flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: 11px; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 999px; color: var(--ink-2); }
+.ai-badge i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.ai-badge.on i { background: var(--ok); }
+
+footer.foot { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: space-between; }
+
+@media (max-width: 900px) {
+  .sheet { grid-template-columns: minmax(0, 1fr); }
+  .tb { position: static; }
+  .tb { grid-template-columns: 1fr auto; }
+  .tb .summary { grid-column: 1 / -1; grid-row: 2; border-top: 1.5px solid var(--ink); }
+  .tb .play { grid-row: 1; grid-column: 2; }
+  .tb .play span { display: none; }
+}
+@media (max-width: 520px) {
+  body { font-size: 14.5px; }
+  .tb .brand h1 { font-size: 22px; }
+  .tb .brand img { width: 42px; height: 30px; }
+  .summary { gap: 4px 14px; }
+  .summary .v { font-size: 13px; }
+  .hero-num .v { font-size: 38px; }
+  .figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tab { padding: 6px 12px 7px; }
+  .tab .nm { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="tb" aria-label="Project title block">
+  <div class="brand">
+    <img src="assets/team-logo.jpg" alt="The Game Changers team logo">
+    <div>
+      <h1>Build<b>Verse</b> Studio</h1>
+      <small>The Game Changers · Hack Day S01</small>
+    </div>
+  </div>
+  <div class="summary" id="summary" aria-live="polite"></div>
+  <a class="play" href="game.html" title="Play Richter Rise — the earthquake tower game">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>
+    <span>Play Richter Rise</span>
+  </a>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Drawing sheets">
+  <button class="tab" role="tab" data-sheet="site" aria-selected="true"><span class="no">C-01</span><span class="nm">Land &amp; Plot</span></button>
+  <button class="tab" role="tab" data-sheet="plan" aria-selected="false"><span class="no">A-01</span><span class="nm">Blueprint</span></button>
+  <button class="tab" role="tab" data-sheet="model" aria-selected="false"><span class="no">A-02</span><span class="nm">3D Model</span></button>
+  <button class="tab" role="tab" data-sheet="safety" aria-selected="false"><span class="no">S-01</span><span class="nm">Safety Analysis</span></button>
+  <button class="tab" role="tab" data-sheet="cost" aria-selected="false"><span class="no">Q-01</span><span class="nm">AI Cost &amp; Materials</span></button>
+</nav>
+
+<!-- ============ C-01 SITE ============ -->
+<section class="sheet" id="sheet-site" role="tabpanel">
+  <div class="spec">
+    <div class="panel">
+      <h2>Plot boundary <span class="tag">C-01</span></h2>
+      <div class="seg" role="group" aria-label="Plot input mode">
+        <button id="modeRect" aria-pressed="true">Rectangle</button>
+        <button id="modeDraw" aria-pressed="false">Draw on map grid</button>
+      </div>
+      <div id="rectInputs" style="margin-top:12px">
+        <div class="field"><label for="inW">Plot width (frontage)</label><span class="out" id="outW"></span><input type="range" id="inW" min="15" max="120" step="1"></div>
+        <div class="field"><label for="inD">Plot depth</label><span class="out" id="outD"></span><input type="range" id="inD" min="20" max="150" step="1"></div>
+      </div>
+      <div id="drawInputs" hidden style="margin-top:12px">
+        <p class="lede">Tap the grid to place corner stones. Drag a corner to move it.</p>
+        <div class="field"><label for="inGrid">Survey grid size</label><span class="out" id="outGrid"></span>
+          <select id="inGrid">
+            <option value="100">100 ft × 100 ft (house plot)</option>
+            <option value="250">250 ft × 250 ft (large plot)</option>
+            <option value="1000">1000 ft × 1000 ft (farm land, acres)</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="btn ghost" id="polyUndo">Undo corner</button>
+          <button class="btn ghost" id="polyClear">Clear</button>
+          <button class="btn ghost" id="polySample">Sample plot</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Setbacks &amp; FSI</h2>
+      <div class="field"><label for="inSF">Front setback</label><span class="out" id="outSF"></span><input type="range" id="inSF" min="0" max="20" step="0.5"></div>
+      <div class="field"><label for="inSR">Rear setback</label><span class="out" id="outSR"></span><input type="range" id="inSR" min="0" max="15" step="0.5"></div>
+      <div class="field"><label for="inSS">Side setback (each side)</label><span class="out" id="outSS"></span><input type="range" id="inSS" min="0" max="10" step="0.5"></div>
+      <div class="field"><label for="inFSI">Floor Space Index allowed</label><span class="out" id="outFSI"></span><input type="range" id="inFSI" min="0.5" max="3.5" step="0.05"></div>
+      <p class="note">Check your local body's rules (CMDA / DTCP in Tamil Nadu) for exact setbacks and FSI.</p>
+    </div>
+  </div>
+  <div class="draw">
+    <div class="paperdraw" id="siteSvgWrap"></div>
+    <div class="panel">
+      <h2>Land measurement</h2>
+      <div class="hero-num"><span class="v num" id="areaBig"></span><span class="u">square feet</span></div>
+      <div class="figs" style="margin-top:12px" id="areaFigs"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A-01 PLAN ============ -->
+<section class="sheet" id="sheet-plan" role="tabpanel" hidden>
+  <div class="spec">
+    <div class="panel">
+      <h2>Programme <span class="tag">A-01</span></h2>
+      <div class="field"><label>Bedrooms per floor</label><span class="out" id="outBHK"></span></div>
+      <div class="seg" role="group" aria-label="Bedrooms" id="bhkSeg">
+        <button data-v="1">1 BHK</button><button data-v="2">2 BHK</button><button data-v="3">3 BHK</button><button data-v="4">4 BHK</button>
+      </div>
+      <div class="field" style="margin-top:12px"><label for="inFloors">Residential floors</label><span class="out" id="outFloors"></span><input type="range" id="inFloors" min="1" max="6" step="1"></div>
+      <label class="check"><input type="checkbox" id="inStilt"> Stilt parking on the ground level (common in Chennai)</label>
+      <div class="field"><label for="inLevel">Show floor</label><select id="inLevel"></select></div>
+      <div class="row"><button class="btn ghost" id="dlSvg">Download blueprint (SVG)</button></div>
+    </div>
+    <div class="panel">
+      <h2>NBC 2016 room check</h2>
+      <p class="lede" id="nbcSummary"></p>
+      <p class="note">Minimums from the National Building Code of India 2016, Part 3: habitable room 9.5 m² / 2.4 m wide (one room), others 7.5 m² / 2.1 m; kitchen 5.0 m² / 1.8 m; bath with WC 2.8 m² / 1.2 m.</p>
+    </div>
+  </div>
+  <div class="draw">
+    <div class="blueprint">
+      <div id="planSvgWrap"></div>
+      <div class="titlestrip" id="planTitle"></div>
+    </div>
+    <div class="panel">
+      <h2>Room schedule</h2>
+      <div class="tscroll"><table id="roomTable"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A-02 3D ============ -->
+<section class="sheet" id="sheet-model" role="tabpanel" hidden>
+  <div class="spec">
+    <div class="panel">
+      <h2>Design style <span class="tag">A-02</span></h2>
+      <div class="seg" role="group" aria-label="Architectural style" id="styleSeg">
+        <button data-v="modern">Modern</button><button data-v="contemporary">Contemporary</button><button data-v="traditional">Traditional</button>
+      </div>
+      <p class="note" id="styleNote"></p>
+      <label class="check" style="margin-top:12px"><input type="checkbox" id="inCut"> Cutaway: lift the roof and see the rooms of the top floor</label>
+      <label class="check"><input type="checkbox" id="inSpin" checked> Slowly rotate</label>
+    </div>
+    <div class="panel">
+      <h2>Sun study</h2>
+      <div class="field"><label for="inHour">Time of day</label><span class="out" id="outHour"></span><input type="range" id="inHour" min="6" max="18" step="0.25"></div>
+      <p class="note">North is behind the house and the road is in front. Drag to orbit, pinch or scroll to zoom.</p>
+    </div>
+  </div>
+  <div class="draw">
+    <div class="stage"><canvas id="c3d" aria-label="3D model of the designed building"></canvas><div class="hud" id="hud3d"></div></div>
+    <div class="figs" id="modelFigs"></div>
+  </div>
+</section>
+
+<!-- ============ S-01 SAFETY ============ -->
+<section class="sheet" id="sheet-safety" role="tabpanel" hidden>
+  <div class="spec">
+    <div class="panel">
+      <h2>Site hazards <span class="tag">S-01</span></h2>
+      <div class="field"><label for="inZone">Seismic zone (IS 1893)</label>
+        <select id="inZone">
+          <option value="II">Zone II · low (e.g. Bengaluru, Hyderabad)</option>
+          <option value="III">Zone III · moderate (e.g. Chennai, Coimbatore)</option>
+          <option value="IV">Zone IV · high (e.g. Delhi)</option>
+          <option value="V">Zone V · very high (e.g. Guwahati, Bhuj)</option>
+        </select></div>
+      <div class="field"><label for="inSoil">Soil type</label>
+        <select id="inSoil">
+          <option value="I">Type I · rock or hard soil</option>
+          <option value="II">Type II · medium (stiff) soil</option>
+          <option value="III">Type III · soft soil / loose sand</option>
+        </select></div>
+      <div class="field"><label for="inSys">Structural system</label>
+        <select id="inSys">
+          <option value="rcc_smrf">RCC frame, ductile (SMRF, R = 5)</option>
+          <option value="rcc_omrf">RCC frame, ordinary (OMRF, R = 3)</option>
+          <option value="masonry">Load-bearing brick walls (R = 1.5)</option>
+          <option value="steel">Steel frame (SMRF, R = 5)</option>
+        </select></div>
+      <div class="field"><label for="inWind">Basic wind speed (IS 875-3)</label>
+        <select id="inWind">
+          <option value="33">33 m/s</option><option value="39">39 m/s (Bengaluru)</option><option value="44">44 m/s</option>
+          <option value="47">47 m/s (Delhi)</option><option value="50">50 m/s (Chennai)</option><option value="55">55 m/s</option>
+        </select></div>
+      <label class="check"><input type="checkbox" id="inCoast"> Coastal, cyclone-prone location</label>
+      <label class="check"><input type="checkbox" id="inStilt2"> Stilt parking (open ground storey)</label>
+    </div>
+    <div class="panel">
+      <h2>How the index works</h2>
+      <p class="note" style="margin-top:0">A rule-based expert system starts at 100 and deducts points for each risk it finds, then lists the reason. It is a learning tool and does not replace a structural engineer's design.</p>
+    </div>
+  </div>
+  <div class="draw">
+    <div class="panel">
+      <h2>Design-risk index</h2>
+      <div class="hero-num"><span class="v num" id="scoreBig"></span><span class="u">/ 100</span><span class="chip" id="scoreChip"></span></div>
+      <div class="meter"><i id="scoreMark"></i></div>
+      <div class="meter-l"><span>0 high risk</span><span>50</span><span>65</span><span>80</span><span>100 robust</span></div>
+      <h3>Why this score</h3>
+      <ul class="factors" id="factors"></ul>
+    </div>
+    <div class="figs" id="seisFigs"></div>
+    <div class="cols2">
+      <div class="panel chart">
+        <h2>Response spectrum <span class="tag">IS 1893:2016</span></h2>
+        <div class="legend"><span><i style="background:var(--blue)"></i>Sa/g for this soil</span><span><i style="background:var(--amber)"></i>Your building's period</span></div>
+        <div id="specChart"></div>
+      </div>
+      <div class="panel chart">
+        <h2>Storey earthquake forces <span class="tag">kN</span></h2>
+        <p class="note" style="margin:0 0 8px">Base shear spread up the height (Wᵢhᵢ² rule). Upper floors take the most.</p>
+        <div class="bars" id="storeyBars"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Safety precautions for this project</h2>
+      <div class="cols2" id="precautions"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Q-01 COST AI ============ -->
+<section class="sheet" id="sheet-cost" role="tabpanel" hidden>
+  <div class="spec">
+    <div class="panel">
+      <h2>Market inputs <span class="tag">Q-01</span></h2>
+      <div class="field"><label for="inTier">Location</label>
+        <select id="inTier">
+          <option value="metro">Metro (e.g. Chennai)</option>
+          <option value="tier2">Tier-2 city (e.g. Coimbatore, Madurai)</option>
+          <option value="rural">Town / rural</option>
+        </select></div>
+      <div class="field"><label for="inQual">Finish quality</label>
+        <select id="inQual">
+          <option value="basic">Basic</option>
+          <option value="standard">Standard</option>
+          <option value="premium">Premium</option>
+        </select></div>
+    </div>
+    <div class="panel">
+      <h2>Neural network <span class="ai-badge" id="aiBadge"><i></i><span>not trained</span></span></h2>
+      <p class="lede">A 2-layer network (13 inputs → 24 neurons → 2 outputs) learns cost and build time from 600 sample projects, right here in your browser.</p>
+      <div class="trainbar"><i id="trainProg"></i></div>
+      <div class="row"><button class="btn" id="trainBtn">Train model</button></div>
+      <div class="legend" style="margin-top:12px"><span><i style="background:var(--blue)"></i>Training error</span><span><i style="background:var(--amber)"></i>Validation error</span></div>
+      <div class="chart" id="lossChart"></div>
+      <p class="note" id="aiMetrics"></p>
+      <p class="note">Sample projects are generated from 2025–26 Tamil Nadu construction rate ranges for this demo. Real deployments would train on actual contractor bills.</p>
+    </div>
+  </div>
+  <div class="draw">
+    <div class="panel">
+      <h2>Predicted cost</h2>
+      <div class="hero-num"><span class="v num" id="costBig">—</span><span class="u" id="costRange"></span></div>
+      <div class="figs" style="margin-top:12px" id="costFigs"></div>
+    </div>
+    <div class="cols2">
+      <div class="panel">
+        <h2>Where the money goes</h2>
+        <div class="bars" id="costBars"></div>
+      </div>
+      <div class="panel">
+        <h2>What drives the prediction</h2>
+        <p class="note" style="margin:0 0 8px">Permutation importance: how much the model's error grows when one input is scrambled.</p>
+        <div class="bars" id="impBars"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Material estimate <span class="tag">thumb rules × built-up area</span></h2>
+      <div class="tscroll"><table id="matTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Construction timeline</h2>
+      <div class="gantt" id="gantt"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <span>BuildVerse Studio · Team The Game Changers · Hack Day S01 Genesis, St. Peter's College of Engineering and Technology</span>
+  <span>Educational prototype. Always get drawings approved and designs signed by licensed professionals.</span>
+</footer>
+</div>
+
+<script src="engine3d.js"></script>
+<script>
+(function () {
+'use strict';
+
+/* =====================================================================
+   0. helpers
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const SQFT_M2 = 0.09290304, FT_M = 0.3048;
+const fmt = (n, d = 0) => Number(n).toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: d });
+function inr(n) {
+  if (!isFinite(n)) return '—';
+  if (n >= 1e7) return '₹' + (n / 1e7).toFixed(2) + ' Cr';
+  if (n >= 1e5) return '₹' + (n / 1e5).toFixed(1) + ' L';
+  return '₹' + fmt(Math.round(n));
+}
+function ftin(ft) { const t = Math.round(ft * 12); return `${Math.floor(t / 12)}′${t % 12}″`; }
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function randn(r) { let u = 0, v = 0; while (u === 0) u = r(); while (v === 0) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const ICON = {
+  ok: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="currentColor" opacity=".18"/><path d="M4.5 8.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l7 12.5H1z" fill="currentColor" opacity=".18"/><path d="M8 6v3.6M8 11.6v.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  bad: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="currentColor" opacity=".18"/><path d="M5.3 5.3l5.4 5.4M10.7 5.3l-5.4 5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  dot: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>'
+};
+
+/* =====================================================================
+   1. state
+   ===================================================================== */
+const DEF = {
+  plotMode: 'rect', w: 30, d: 40, grid: 100,
+  poly: [[14, 16], [76, 12], [86, 58], [54, 84], [12, 72]],
+  setF: 5, setR: 3, setS: 3, fsi: 1.5,
+  floors: 2, bhk: 2, stilt: false, planLevel: 'ground',
+  style: 'modern', cut: false, spin: true, hour: 10,
+  zone: 'III', soil: 'II', system: 'rcc_smrf', wind: 50, coastal: true,
+  tier: 'metro', quality: 'standard'
+};
+let S = Object.assign({}, DEF);
+try { const saved = JSON.parse(localStorage.getItem('buildverse-state') || 'null'); if (saved) S = Object.assign({}, DEF, saved); } catch (e) { /* storage unavailable */ }
+function save() { try { localStorage.setItem('buildverse-state', JSON.stringify(S)); } catch (e) { /* ignore */ } }
+
+/* =====================================================================
+   2. land geometry
+   ===================================================================== */
+function polyStats(p) {
+  if (p.length < 3) return { area: 0, perim: 0, cx: 0, cy: 0, bw: 0, bd: 0, minx: 0, miny: 0 };
+  let a = 0, cx = 0, cy = 0, per = 0;
+  for (let i = 0; i < p.length; i++) {
+    const [x1, y1] = p[i], [x2, y2] = p[(i + 1) % p.length];
+    const cr = x1 * y2 - x2 * y1; a += cr; cx += (x1 + x2) * cr; cy += (y1 + y2) * cr;
+    per += Math.hypot(x2 - x1, y2 - y1);
+  }
+  a /= 2; cx /= (6 * a); cy /= (6 * a);
+  const xs = p.map(q => q[0]), ys = p.map(q => q[1]);
+  const minx = Math.min(...xs), miny = Math.min(...ys);
+  return { area: Math.abs(a), perim: per, cx, cy, bw: Math.max(...xs) - minx, bd: Math.max(...ys) - miny, minx, miny };
+}
+
+function pointIn(poly, x, y) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) c = !c;
+  }
+  return c;
+}
+function rectInside(poly, cx, cy, w, d) {
+  const x0 = cx - w / 2, x1 = cx + w / 2, y0 = cy - d / 2, y1 = cy + d / 2;
+  if (![[x0, y0], [x1, y0], [x1, y1], [x0, y1]].every(([x, y]) => pointIn(poly, x, y))) return false;
+  return !poly.some(([x, y]) => x > x0 && x < x1 && y > y0 && y < y1);
+}
+
+/* =====================================================================
+   3. floor-plan generator
+   ===================================================================== */
+function rowsFor(bhk, stair, kind) {
+  const st = stair ? [{ n: 'Staircase', s: 'Stair', t: 'stair', w: 0.85 }] : [];
+  if (kind === 'stilt') return [
+    { d: 0.62, cells: [{ n: 'Car parking', s: 'Parking', t: 'parking', w: 2.6 }, ...st] },
+    { d: 0.38, cells: [{ n: 'Two-wheeler parking', s: '2W park', t: 'parking2', w: 1.6 }, { n: 'Meter room', s: 'Meter', t: 'utility', w: 0.7 }, { n: 'Security', s: 'Sec.', t: 'utility', w: 0.7 }] }
+  ];
+  const entry = kind === 'ground' ? { n: 'Sit-out', s: 'Sit-out', t: 'out' } : { n: 'Balcony', s: 'Balc.', t: 'balcony' };
+  const baths = [{ n: 'Common bath', s: 'C.Bath', t: 'bath', w: 1 }, { n: 'Attached bath', s: 'A.Bath', t: 'bath', w: 1 }];
+  if (bhk === 1) return [
+    { d: 0.34, cells: [{ ...entry, w: 0.9 }, { n: 'Living', s: 'Living', t: 'living', w: 2.2 }] },
+    { d: 0.30, cells: [{ n: 'Kitchen', s: 'Kit.', t: 'kitchen', w: 1.2 }, { n: 'Dining', s: 'Dining', t: 'dining', w: 1.5 }, ...st] },
+    { d: 0.36, cells: [{ n: 'Bedroom 1', s: 'Bed 1', t: 'master', w: 2.2 }, { stack: [{ n: 'Utility', s: 'Util.', t: 'utility', w: 0.7 }, { n: 'Bath', s: 'Bath', t: 'bath', w: 1 }], w: 0.95 }] }
+  ];
+  if (bhk === 2) return [
+    { d: 0.30, cells: [{ ...entry, w: 0.85 }, { n: 'Living', s: 'Living', t: 'living', w: 2.4 }] },
+    { d: 0.29, cells: [{ n: 'Kitchen', s: 'Kit.', t: 'kitchen', w: 1.25 }, { n: 'Dining', s: 'Dining', t: 'dining', w: 1.5 }, { n: 'Pooja', s: 'Pooja', t: 'pooja', w: 0.55 }, ...st] },
+    { d: 0.41, cells: [{ n: 'Bedroom 1', s: 'Bed 1', t: 'master', w: 2.0 }, { stack: baths, w: 0.9 }, { n: 'Bedroom 2', s: 'Bed 2', t: 'bed', w: 1.8 }] }
+  ];
+  if (bhk === 3) return [
+    { d: 0.29, cells: [{ ...entry, w: 0.75 }, { n: 'Living', s: 'Living', t: 'living', w: 2.0 }, { n: 'Bedroom 3', s: 'Bed 3', t: 'bed', w: 1.55 }] },
+    { d: 0.28, cells: [{ n: 'Kitchen', s: 'Kit.', t: 'kitchen', w: 1.2 }, { n: 'Dining', s: 'Dining', t: 'dining', w: 1.6 }, { n: 'Pooja', s: 'Pooja', t: 'pooja', w: 0.5 }, ...st] },
+    { d: 0.43, cells: [{ n: 'Bedroom 1', s: 'Bed 1', t: 'master', w: 1.9 }, { stack: baths, w: 0.85 }, { n: 'Bedroom 2', s: 'Bed 2', t: 'bed', w: 1.7 }] }
+  ];
+  return [
+    { d: 0.29, cells: [{ ...entry, w: 0.7 }, { n: 'Living', s: 'Living', t: 'living', w: 1.9 }, { n: 'Bedroom 4', s: 'Bed 4', t: 'bed', w: 1.45 }] },
+    { d: 0.27, cells: [{ n: 'Kitchen', s: 'Kit.', t: 'kitchen', w: 1.15 }, { n: 'Dining', s: 'Dining', t: 'dining', w: 1.5 }, { n: 'Pooja', s: 'Pooja', t: 'pooja', w: 0.5 }, ...st] },
+    { d: 0.44, cells: [{ n: 'Bedroom 1', s: 'Bed 1', t: 'master', w: 1.7 }, { stack: baths, w: 0.8 }, { n: 'Bedroom 2', s: 'Bed 2', t: 'bed', w: 1.5 }, { n: 'Bedroom 3', s: 'Bed 3', t: 'bed', w: 1.5 }] }
+  ];
+}
+
+// plan coordinates: x from left, y from FRONT (road) toward rear, feet
+function layoutPlan(fw, fd, bhk, stair, kind) {
+  const rows = rowsFor(bhk, stair, kind);
+  const totalD = rows.reduce((s, r) => s + r.d, 0);
+  const rooms = []; let y = 0;
+  rows.forEach((row, ri) => {
+    const rd = row.d / totalD * fd, totalW = row.cells.reduce((s, c) => s + c.w, 0);
+    let x = 0;
+    row.cells.forEach((cell, ci) => {
+      const cw = cell.w / totalW * fw;
+      if (cell.stack) {
+        const sub = cell.stack.reduce((s, c) => s + c.w, 0); let yy = y;
+        cell.stack.forEach((sc, si) => { const sh = sc.w / sub * rd; rooms.push({ ...sc, x, y: yy, w: cw, h: sh, row: ri, col: ci, stackIdx: si, nRows: rows.length }); yy += sh; });
+      } else rooms.push({ ...cell, x, y, w: cw, h: rd, row: ri, col: ci, stackIdx: -1, nRows: rows.length });
+      x += cw;
+    });
+    y += rd;
+  });
+  const eps = 0.01;
+  rooms.forEach(r => {
+    r.ext = { front: r.y < eps, rear: r.y + r.h > fd - eps, left: r.x < eps, right: r.x + r.w > fw - eps };
+    r.area = r.w * r.h;
+    r.doors = []; r.windows = [];
+    const last = r.row === r.nRows - 1, first = r.row === 0;
+    switch (r.t) {
+      case 'out': r.doors.push({ edge: 'right', w: 3.5, main: true }); r.openFront = true; break;
+      case 'balcony': r.doors.push({ edge: 'right', w: 3 }); r.rail = true; break;
+      case 'living': r.doors.push({ edge: 'rear', w: 4, arch: true }); break;
+      case 'kitchen': r.doors.push({ edge: 'right', w: 3, arch: true }); break;
+      case 'pooja': r.doors.push({ edge: 'left', w: 2.5 }); break;
+      case 'stair': r.doors.push({ edge: 'left', w: Math.min(3.5, r.h - 1), arch: true }); break;
+      case 'parking': r.openFront = true; break;
+      case 'parking2': r.doors.push({ edge: 'front', w: Math.min(5, r.w - 1), arch: true }); break;
+      case 'utility': r.doors.push({ edge: first ? 'rear' : 'front', w: 2.5 }); break;
+      case 'bath': r.doors.push(r.stackIdx > 0 ? { edge: 'left', w: 2.5 } : { edge: 'front', w: 2.5 }); break;
+      case 'master': case 'bed': r.doors.push({ edge: first ? 'rear' : 'front', w: 3 }); break;
+      default: break;
+    }
+    if (r.t === 'utility' && r.stackIdx === 0) r.doors = [{ edge: 'front', w: 2.5 }];
+    const wantsWin = ['living', 'master', 'bed', 'kitchen', 'bath', 'stair', 'dining', 'pooja', 'utility'].includes(r.t);
+    if (wantsWin) {
+      ['front', 'rear', 'left', 'right'].forEach(e => {
+        if (!r.ext[e]) return;
+        const len = (e === 'front' || e === 'rear') ? r.w : r.h;
+        const ww = r.t === 'bath' || r.t === 'pooja' || r.t === 'utility' ? 2 : r.t === 'kitchen' || r.t === 'stair' ? 3 : 4;
+        if (len >= ww + 1.5) r.windows.push({ edge: e, w: ww });
+      });
+    }
+  });
+  return rooms;
+}
+
+const NBC = {
+  living: { a: 102.3, w: 7.87, rule: 'Main habitable room ≥ 9.5 m², ≥ 2.4 m wide' },
+  master: { a: 102.3, w: 7.87, rule: 'Main habitable room ≥ 9.5 m², ≥ 2.4 m wide' },
+  bed: { a: 80.7, w: 6.89, rule: 'Habitable room ≥ 7.5 m², ≥ 2.1 m wide' },
+  kitchen: { a: 53.8, w: 5.91, rule: 'Kitchen ≥ 5.0 m², ≥ 1.8 m wide' },
+  bath: { a: 30.1, w: 3.94, rule: 'Bath + WC ≥ 2.8 m², ≥ 1.2 m wide' }
+};
+function nbcCheck(r) {
+  const rule = NBC[r.t]; if (!rule) return null;
+  const minW = Math.min(r.w, r.h);
+  const okA = r.area >= rule.a, okW = minW >= rule.w;
+  return { ok: okA && okW, rule, why: !okA && !okW ? 'too small and too narrow' : !okA ? 'area below minimum' : !okW ? 'too narrow' : '' };
+}
+
+/* =====================================================================
+   4. derived model of the whole project
+   ===================================================================== */
+const ZF = { II: 0.10, III: 0.16, IV: 0.24, V: 0.36 };
+const SYS = {
+  rcc_smrf: { name: 'RCC frame (SMRF)', R: 5 },
+  rcc_omrf: { name: 'RCC frame (OMRF)', R: 3 },
+  masonry: { name: 'Load-bearing masonry', R: 1.5 },
+  steel: { name: 'Steel frame (SMRF)', R: 5 }
+};
+function saG(T, soil) {
+  if (T < 0.1) return 1 + 15 * T;
+  const c = { I: 0.40, II: 0.55, III: 0.67 }[soil], k = { I: 1.00, II: 1.36, III: 1.67 }[soil];
+  if (T <= c) return 2.5;
+  return k / Math.min(T, 4);
+}
+function k2(h) {
+  const t = [[0, 0.91], [10, 0.91], [15, 0.97], [20, 1.01], [30, 1.06], [50, 1.12]];
+  for (let i = 1; i < t.length; i++) if (h <= t[i][0]) { const [h0, v0] = t[i - 1], [h1, v1] = t[i]; return v0 + (v1 - v0) * (h - h0) / (h1 - h0); }
+  return 1.12;
+}
+
+function planLevels() {
+  const L = [];
+  if (S.stilt) L.push({ v: 'stilt', n: 'Stilt level (parking)' });
+  else L.push({ v: 'ground', n: 'Ground floor' });
+  if (S.floors > 1 || S.stilt) L.push({ v: 'upper', n: S.stilt ? 'Typical residential floor' : 'Typical upper floor' });
+  return L;
+}
+
+function derive() {
+  const D = {};
+  if (S.plotMode === 'rect') {
+    D.area = S.w * S.d; D.perim = 2 * (S.w + S.d); D.pw = S.w; D.pd = S.d; D.eq = false;
+  } else {
+    const ps = polyStats(S.poly); D.ps = ps; D.area = ps.area; D.perim = ps.perim; D.eq = true;
+    if (ps.area > 50 && ps.bd > 0) {
+      // largest rectangle (plot's aspect) centred on the centroid that stays inside the boundary
+      const asp = clamp(ps.bw / ps.bd, 0.4, 2.5), w0 = Math.sqrt(ps.area * asp), d0 = ps.area / w0;
+      let lo = 0, hi = 1.2;
+      for (let k = 0; k < 24; k++) { const m = (lo + hi) / 2; if (rectInside(S.poly, ps.cx, ps.cy, w0 * m, d0 * m)) lo = m; else hi = m; }
+      D.pw = Math.max(w0 * lo, 1); D.pd = Math.max(d0 * lo, 1);
+    } else { D.pw = 20; D.pd = 30; }
+  }
+  D.fw = clamp(D.pw - 2 * S.setS, 12, 60);
+  D.fd = clamp(D.pd - S.setF - S.setR, 16, 80);
+  D.capped = (D.pw - 2 * S.setS > 60) || (D.pd - S.setF - S.setR > 80);
+  D.foot = D.fw * D.fd;
+  D.levels = S.floors + (S.stilt ? 1 : 0);
+  D.builtUp = D.foot * S.floors;
+  D.builtAll = D.foot * D.levels;
+  D.maxBuilt = D.area * S.fsi;
+  D.maxFloors = Math.max(0, Math.floor(D.maxBuilt / D.foot + 1e-6));
+  D.fsiUsed = D.area > 0 ? D.builtUp / D.area : 0;
+  D.coverage = D.area > 0 ? D.foot / D.area : 0;
+  D.stair = D.levels > 1;
+  const lv = planLevels(); if (!lv.some(l => l.v === S.planLevel)) S.planLevel = lv[0].v;
+  D.planKind = S.planLevel;
+  D.rooms = layoutPlan(D.fw, D.fd, S.bhk, D.stair, D.planKind);
+  // all residential kinds for NBC
+  const resKind = S.stilt ? 'upper' : 'ground';
+  D.resRooms = layoutPlan(D.fw, D.fd, S.bhk, D.stair, resKind);
+  D.nbc = D.resRooms.map(r => ({ r, c: nbcCheck(r) })).filter(x => x.c);
+  D.nbcFails = D.nbc.filter(x => !x.c.ok).length;
+  D.carpet = D.resRooms.filter(r => !['out', 'balcony', 'stair'].includes(r.t)).reduce((s, r) => s + (r.w - 0.375) * (r.h - 0.375), 0);
+
+  // ---- seismic (IS 1893:2016 equivalent static) ----
+  const h = D.levels * 3.048, dM = D.fw * FT_M, A = D.foot * SQFT_M2;
+  const T = S.system === 'steel' ? 0.085 * Math.pow(h, 0.75) : 0.09 * h / Math.sqrt(dM);
+  const sa = saG(T, S.soil), Z = ZF[S.zone], R = SYS[S.system].R, I = 1.0;
+  const Ah = Z / 2 * I / R * sa;
+  const wFloor = S.system === 'masonry' ? 14 : 11, wRoof = S.system === 'masonry' ? 10 : 8;
+  const levels = [];
+  for (let i = 1; i <= D.levels; i++) levels.push({ i, h: i * 3.048, W: A * (i === D.levels ? wRoof : wFloor) });
+  const Wt = levels.reduce((s, l) => s + l.W, 0), Vb = Ah * Wt;
+  const sumWh2 = levels.reduce((s, l) => s + l.W * l.h * l.h, 0);
+  levels.forEach(l => { l.Q = Vb * l.W * l.h * l.h / sumWh2; });
+  const Vz = S.wind * k2(h), pz = 0.6 * Vz * Vz, pd = pz * (S.coastal ? 1.0 : 0.9);
+  const Fw = 1.2 * pd * (D.fd * FT_M) * h / 1000;
+  D.seis = { h, T, sa, Z, R, I, Ah, Wt, Vb, levels, Vz, pz, Fw, gov: Vb >= Fw ? 'Earthquake' : 'Wind' };
+
+  // ---- safety index (rule-based expert system) ----
+  const f = [];
+  const add = (pts, txt) => f.push({ pts, txt });
+  add({ II: 0, III: 6, IV: 14, V: 24 }[S.zone], `Seismic zone ${S.zone} (zone factor Z = ${Z.toFixed(2)})`);
+  add({ I: 0, II: 4, III: 10 }[S.soil], { I: 'Rock / hard soil amplifies shaking least', II: 'Medium soil amplifies long-period shaking', III: 'Soft soil amplifies shaking the most' }[S.soil]);
+  if (S.system === 'rcc_omrf') add(S.zone === 'II' ? 4 : 12, S.zone === 'II' ? 'Ordinary RCC frame: less ductile than SMRF' : 'Ordinary RCC frames are not permitted in zones III–V; use ductile SMRF (IS 13920)');
+  else if (S.system === 'masonry') add(10 + (D.levels > 2 ? 15 : 0), D.levels > 2 ? 'Unreinforced load-bearing walls above G+1 are risky in earthquakes' : 'Load-bearing masonry is brittle; needs seismic bands (IS 4326)');
+  else add(0, `${SYS[S.system].name}: ductile system, R = ${R}`);
+  if (S.stilt) add(12, 'Open stilt floor forms a soft storey, the most common collapse mode in Indian quakes');
+  if (h >= 15) add(6, `Height ${h.toFixed(1)} m: NBC treats 15 m and above as high-rise`);
+  const asp = Math.max(D.fw, D.fd) / Math.min(D.fw, D.fd);
+  if (asp > 3) add(4, `Long, narrow plan (${asp.toFixed(1)} : 1) twists in earthquakes`);
+  if (S.coastal && S.wind >= 50) add(3, 'Cyclone-prone coast: roof items and parapets face uplift');
+  if (S.coastal && S.soil === 'III') add(5, 'Loose coastal sand can liquefy during strong shaking');
+  if (D.nbcFails) add(Math.min(8, D.nbcFails * 2), `${D.nbcFails} room${D.nbcFails > 1 ? 's' : ''} below NBC minimum size`);
+  if (D.fsiUsed > S.fsi + 1e-6) add(6, `Built-up area exceeds the allowed FSI (${D.fsiUsed.toFixed(2)} > ${S.fsi.toFixed(2)})`);
+  const score = clamp(100 - f.reduce((s, x) => s + x.pts, 0), 0, 100);
+  D.safety = { score, factors: f.sort((a, b) => b.pts - a.pts), band: score >= 80 ? ['Robust', 'ok'] : score >= 65 ? ['Adequate with care', 'ok'] : score >= 50 ? ['Needs design upgrades', 'warn'] : ['High risk', 'bad'] };
+  return D;
+}
+
+/* =====================================================================
+   5. UI wiring
+   ===================================================================== */
+let D = derive();
+let activeSheet = 'site';
+
+function setSheet(name) {
+  activeSheet = name;
+  $$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.sheet === name)));
+  $$('.sheet').forEach(s => { s.hidden = s.id !== 'sheet-' + name; });
+  if (name === 'model') start3D();
+  if (name === 'cost' && !AI.trained && !AI.training) trainModel();
+  renderSheet();
+  try { history.replaceState(null, '', '#' + name); } catch (e) { /* ignore */ }
+}
+$$('.tab').forEach(t => t.addEventListener('click', () => setSheet(t.dataset.sheet)));
+
+function bindRange(id, key, outId, fmtFn) {
+  const el = $('#' + id), out = outId && $('#' + outId);
+  el.value = S[key];
+  const show = () => { if (out) out.textContent = fmtFn(S[key]); };
+  show();
+  el.addEventListener('input', () => { S[key] = parseFloat(el.value); show(); update(); });
+}
+function bindSelect(id, key, parse) {
+  const el = $('#' + id); el.value = String(S[key]);
+  el.addEventListener('change', () => { S[key] = parse ? parse(el.value) : el.value; update(); });
+}
+function bindCheck(id, key) {
+  const el = $('#' + id); el.checked = !!S[key];
+  el.addEventListener('change', () => { S[key] = el.checked; syncControls(); update(); });
+}
+function bindSeg(wrapId, key, parse) {
+  const wrap = $('#' + wrapId);
+  const sync = () => $$('button', wrap).forEach(b => b.setAttribute('aria-pressed', String(String(S[key]) === b.dataset.v)));
+  $$('button', wrap).forEach(b => b.addEventListener('click', () => { S[key] = parse ? parse(b.dataset.v) : b.dataset.v; sync(); update(); }));
+  sync();
+}
+const ftFmt = v => `${v} ft · ${(v * FT_M).toFixed(1)} m`;
+bindRange('inW', 'w', 'outW', ftFmt);
+bindRange('inD', 'd', 'outD', ftFmt);
+bindRange('inSF', 'setF', 'outSF', v => `${v} ft`);
+bindRange('inSR', 'setR', 'outSR', v => `${v} ft`);
+bindRange('inSS', 'setS', 'outSS', v => `${v} ft`);
+bindRange('inFSI', 'fsi', 'outFSI', v => v.toFixed(2));
+bindRange('inFloors', 'floors', 'outFloors', v => (S.stilt ? 'Stilt + ' : 'G') + (S.stilt ? v : v > 1 ? '+' + (v - 1) : '') + ` · ${v} floor${v > 1 ? 's' : ''}`);
+bindRange('inHour', 'hour', 'outHour', v => { const h = Math.floor(v), m = Math.round((v - h) * 60); const hh = ((h + 11) % 12) + 1; return `${hh}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; });
+bindSeg('bhkSeg', 'bhk', v => parseInt(v, 10));
+bindSeg('styleSeg', 'style');
+bindCheck('inStilt', 'stilt');
+bindCheck('inStilt2', 'stilt');
+bindCheck('inCut', 'cut');
+bindCheck('inSpin', 'spin');
+bindCheck('inCoast', 'coastal');
+bindSelect('inZone', 'zone');
+bindSelect('inSoil', 'soil');
+bindSelect('inSys', 'system');
+bindSelect('inWind', 'wind', v => parseInt(v, 10));
+bindSelect('inTier', 'tier');
+bindSelect('inQual', 'quality');
+bindSelect('inGrid', 'grid', v => parseInt(v, 10));
+$('#inGrid').addEventListener('change', () => { S.poly = DEF.poly.map(([x, y]) => [x * S.grid / 100, y * S.grid / 100]); update(); });
+$('#inLevel').addEventListener('change', e => { S.planLevel = e.target.value; update(); });
+
+function syncControls() {
+  $('#inStilt').checked = S.stilt; $('#inStilt2').checked = S.stilt;
+  $('#modeRect').setAttribute('aria-pressed', String(S.plotMode === 'rect'));
+  $('#modeDraw').setAttribute('aria-pressed', String(S.plotMode === 'draw'));
+  $('#rectInputs').hidden = S.plotMode !== 'rect';
+  $('#drawInputs').hidden = S.plotMode !== 'draw';
+  const v = S.floors; $('#outFloors').textContent = (S.stilt ? `Stilt + ${v}` : v > 1 ? `G+${v - 1}` : 'G') + ` · ${v} floor${v > 1 ? 's' : ''}`;
+  $('#outGrid').textContent = `snap ${S.grid / 100} ft`;
+  const lv = planLevels(), sel = $('#inLevel');
+  sel.innerHTML = lv.map(l => `<option value="${l.v}">${l.n}</option>`).join('');
+  if (!lv.some(l => l.v === S.planLevel)) S.planLevel = lv[0].v;
+  sel.value = S.planLevel;
+  $('#styleNote').textContent = {
+    modern: 'Flat roof with parapet, tall dark-framed windows, vertical wood fins and rooftop solar panels.',
+    contemporary: 'Warm grey walls, white slab bands, sunshades (chajjas) over windows and a terrace pergola.',
+    traditional: 'Lime-cream walls, terracotta gable roof with deep overhangs, wooden windows and a pillared sit-out.'
+  }[S.style];
+}
+$('#modeRect').addEventListener('click', () => { S.plotMode = 'rect'; syncControls(); update(); });
+$('#modeDraw').addEventListener('click', () => { S.plotMode = 'draw'; syncControls(); update(); });
+$('#polyUndo').addEventListener('click', () => { S.poly.pop(); update(); });
+$('#polyClear').addEventListener('click', () => { S.poly = []; update(); });
+$('#polySample').addEventListener('click', () => { S.poly = DEF.poly.map(([x, y]) => [x * S.grid / 100, y * S.grid / 100]); update(); });
+
+let raf = 0;
+function update() {
+  save();
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => { D = derive(); syncControls(); renderSummary(); renderSheet(); dirty3D = true; });
+}
+
+/* =====================================================================
+   6. header summary
+   ===================================================================== */
+function renderSummary() {
+  const cents = D.area / 435.6;
+  const items = [
+    ['Plot', `${fmt(D.area)} ft²`],
+    ['Land', cents >= 100 ? `${(D.area / 43560).toFixed(2)} acres` : `${cents.toFixed(2)} cents`],
+    ['Building', `${S.stilt ? 'S+' + S.floors : S.floors > 1 ? 'G+' + (S.floors - 1) : 'G'} · ${S.bhk}BHK`],
+    ['Built-up', `${fmt(D.builtUp)} ft²`],
+    ['Safety', `${D.safety.score}/100`],
+    ['Est. cost', AI.trained ? inr(predictCurrent().cost) : 'train AI']
+  ];
+  $('#summary').innerHTML = items.map(([k, v]) => `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+}
+
+function renderSheet() {
+  if (activeSheet === 'site') renderSite();
+  else if (activeSheet === 'plan') renderPlan();
+  else if (activeSheet === 'model') renderModelInfo();
+  else if (activeSheet === 'safety') renderSafety();
+  else if (activeSheet === 'cost') renderCost();
+}
+
+/* =====================================================================
+   7. C-01 site sheet
+   ===================================================================== */
+function arrowNorth(x, y, s, cls) {
+  return `<g transform="translate(${x},${y})"><circle r="${s}" class="${cls}-dim" fill="none" stroke-width="${s * 0.06}"/><path d="M0 ${-s * 0.85} L${s * 0.32} ${s * 0.5} L0 ${s * 0.2} L${-s * 0.32} ${s * 0.5}Z" class="${cls}-t"/><text y="${-s * 1.2}" text-anchor="middle" font-size="${s * 0.7}" font-weight="600" class="${cls}-t">N</text></g>`;
+}
+
+function renderSite() {
+  const wrap = $('#siteSvgWrap');
+  if (S.plotMode === 'rect') {
+    const w = S.w, d = S.d, fs = Math.max(w, d) / 30, pad = Math.max(w, d) * 0.16;
+    const vb = [-pad, -pad, w + pad * 2, d + pad * 2 + 16];
+    const bx = S.setS, by = S.setR, bw = D.fw, bd = D.fd;
+    const gateW = Math.min(10, w * 0.35), gx = w / 2 - gateW / 2;
+    wrap.innerHTML = `<svg viewBox="${vb.join(' ')}" role="img" aria-label="Site plan: ${w} by ${d} feet plot with building footprint ${Math.round(bw)} by ${Math.round(bd)} feet">
+      <defs><pattern id="hatch" width="${fs * 0.9}" height="${fs * 0.9}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${fs * 0.9}" height="${fs * 0.9}" fill="var(--blue-soft)"/><line x1="0" y1="0" x2="0" y2="${fs * 0.9}" stroke="var(--blue)" stroke-width="${fs * 0.08}" opacity=".55"/></pattern></defs>
+      <rect x="${-pad}" y="${d + 4}" width="${w + pad * 2}" height="14" class="sv-road"/>
+      <line x1="${-pad}" y1="${d + 11}" x2="${w + pad}" y2="${d + 11}" stroke="var(--sheet)" stroke-width="${fs * 0.12}" stroke-dasharray="${fs * 1.2} ${fs * 1.2}"/>
+      <text x="${w / 2}" y="${d + 11 + fs * 0.35}" text-anchor="middle" font-size="${fs}" class="sv-t2" letter-spacing="${fs * 0.3}">ROAD</text>
+      <rect x="0" y="0" width="${w}" height="${d}" class="sv-plot" stroke-width="${fs * 0.1}"/>
+      <line x1="${gx}" y1="${d}" x2="${gx + gateW}" y2="${d}" stroke="var(--blue-soft)" stroke-width="${fs * 0.16}"/>
+      <rect x="${bx}" y="${by}" width="${bw}" height="${bd}" class="sv-foot" stroke-width="${fs * 0.1}"/>
+      <rect x="${S.setS}" y="${S.setR}" width="${Math.max(0, w - 2 * S.setS)}" height="${Math.max(0, d - S.setF - S.setR)}" class="sv-set" stroke-width="${fs * 0.08}" stroke-dasharray="${fs * 0.6} ${fs * 0.4}"/>
+      <text x="${bx + bw / 2}" y="${by + bd / 2 - fs * 0.3}" text-anchor="middle" font-size="${fs * 1.05}" font-weight="600" class="sv-t">BUILDING</text>
+      <text x="${bx + bw / 2}" y="${by + bd / 2 + fs * 1.0}" text-anchor="middle" font-size="${fs * 0.85}" class="sv-t2 num">${ftin(bw)} × ${ftin(bd)}</text>
+      ${dimH(0, w, -pad * 0.45, fs, ftin(w), 'sv')}
+      ${dimV(0, d, -pad * 0.45, fs, ftin(d), 'sv')}
+      ${S.setF >= 1.5 ? `<text x="${w / 2}" y="${d - S.setF / 2 + Math.min(fs * 0.75, S.setF * 0.6) * 0.35}" text-anchor="middle" font-size="${Math.min(fs * 0.75, S.setF * 0.6)}" class="sv-t2">${S.setF}′ front setback</text>` : ''}
+      ${S.setR >= 1.5 ? `<text x="${w / 2}" y="${S.setR / 2 + Math.min(fs * 0.75, S.setR * 0.6) * 0.35}" text-anchor="middle" font-size="${Math.min(fs * 0.75, S.setR * 0.6)}" class="sv-t2">${S.setR}′ rear setback</text>` : ''}
+      ${S.setS >= 1.5 ? `<text x="${S.setS / 2}" y="${by + bd / 2}" font-size="${Math.min(fs * 0.75, S.setS * 0.6)}" class="sv-t2" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 ${S.setS / 2} ${by + bd / 2})">${S.setS}′ side</text>` : ''}
+      ${arrowNorth(w + pad * 0.5, pad * 0.1, fs * 1.4, 'sv')}
+    </svg>`;
+  } else {
+    const G = S.grid, snap = G / 100, fs = G / 34, pad = G * 0.05;
+    const ps = D.ps;
+    let grid = '';
+    for (let i = 0; i <= 20; i++) { const v = i * G / 20, b = i % 2 === 0 ? ' b' : ''; grid += `<line x1="${v}" y1="0" x2="${v}" y2="${G}" class="sv-grid${b}" stroke-width="${G / 900}"/><line x1="0" y1="${v}" x2="${G}" y2="${v}" class="sv-grid${b}" stroke-width="${G / 900}"/>`; }
+    const pts = S.poly.map(p => p.join(',')).join(' ');
+    let edges = '';
+    if (S.poly.length >= 2) {
+      const n = S.poly.length;
+      for (let i = 0; i < (n >= 3 ? n : n - 1); i++) {
+        const [x1, y1] = S.poly[i], [x2, y2] = S.poly[(i + 1) % n];
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, L = Math.hypot(x2 - x1, y2 - y1);
+        let nx = -(y2 - y1) / (L || 1), ny = (x2 - x1) / (L || 1);
+        if (n >= 3 && ((mx + nx - ps.cx) ** 2 + (my + ny - ps.cy) ** 2 < (mx - ps.cx) ** 2 + (my - ps.cy) ** 2)) { nx = -nx; ny = -ny; }
+        const tx = mx + nx * fs * 1.1, ty = my + ny * fs * 1.1 + fs * 0.35;
+        const lbl = G >= 1000 ? `${Math.round(L)}′` : ftin(L);
+        edges += `<rect x="${tx - fs * 1.9}" y="${ty - fs * 0.95}" width="${fs * 3.8}" height="${fs * 1.3}" rx="${fs * 0.3}" class="sv-edge" opacity=".85"/><text x="${tx}" y="${ty}" text-anchor="middle" font-size="${fs * 0.85}" class="sv-t num">${lbl}</text>`;
+      }
+    }
+    let foot = '';
+    if (S.poly.length >= 3 && D.area > 50) {
+      foot = `<rect x="${ps.cx - D.fw / 2}" y="${ps.cy - D.fd / 2}" width="${D.fw}" height="${D.fd}" class="sv-foot" stroke-width="${G / 500}"/>`;
+    }
+    wrap.innerHTML = `<svg id="drawSvg" viewBox="${-pad} ${-pad} ${G + pad * 2} ${G + pad * 2}" role="img" aria-label="Survey grid: tap to add plot corners">
+      <defs><pattern id="hatch" width="${fs * 0.7}" height="${fs * 0.7}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${fs * 0.7}" height="${fs * 0.7}" fill="var(--blue-soft)"/><line x1="0" y1="0" x2="0" y2="${fs * 0.7}" stroke="var(--blue)" stroke-width="${fs * 0.08}" opacity=".55"/></pattern></defs>
+      <rect x="0" y="0" width="${G}" height="${G}" fill="var(--sheet)"/>
+      ${grid}
+      ${S.poly.length >= 3 ? `<polygon points="${pts}" class="sv-plot" fill-opacity=".85" stroke-width="${G / 350}" stroke-linejoin="round"/>` : S.poly.length === 2 ? `<polyline points="${pts}" fill="none" stroke="var(--ink)" stroke-width="${G / 350}"/>` : ''}
+      ${foot}
+      ${edges}
+      ${S.poly.length >= 3 ? `<text x="${ps.cx}" y="${ps.cy + D.fd / 2 + fs * 1.4}" text-anchor="middle" font-size="${fs * 1.1}" font-weight="600" class="sv-t num">${fmt(D.area)} ft²</text>` : ''}
+      ${S.poly.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${fs * 0.55}" class="sv-v" stroke-width="${G / 400}" data-i="${i}"/>`).join('')}
+      <text x="${G / 2}" y="${G + pad * 0.75}" text-anchor="middle" font-size="${fs * 0.8}" class="sv-t2" letter-spacing="${fs * 0.2}">FRONT / ROAD SIDE</text>
+      ${arrowNorth(G - fs * 2, fs * 2.4, fs * 1.3, 'sv')}
+      <text x="${fs * 0.5}" y="${G - fs * 0.6}" font-size="${fs * 0.7}" class="sv-t2 num">grid ${G / 20}′ · snap ${snap}′</text>
+    </svg>`;
+    wireDraw();
+  }
+  // figures
+  const a = D.area;
+  $('#areaBig').textContent = fmt(a);
+  const figs = [
+    ['Square metres', fmt(a * SQFT_M2, 1), 'm²'],
+    ['Cents', fmt(a / 435.6, 2), '1 cent = 435.6 ft²'],
+    ['Grounds', fmt(a / 2400, 2), '1 ground = 2,400 ft²'],
+    ['Acres', fmt(a / 43560, 3), `${fmt(a / 107639, 4)} hectares`],
+    ['Perimeter', `${fmt(D.perim)} ft`, `${fmt(D.perim * FT_M, 1)} m of compound wall`],
+    ['Building footprint', `${fmt(D.foot)} ft²`, `${ftin(D.fw)} × ${ftin(D.fd)}${D.eq ? ' (fitted)' : ''}`],
+    ['Ground coverage', `${fmt(D.coverage * 100, 0)}%`, 'of plot area'],
+    ['FSI allows', `${fmt(D.maxBuilt)} ft²`, `up to ${D.maxFloors} floor${D.maxFloors === 1 ? '' : 's'} of this footprint`]
+  ];
+  $('#areaFigs').innerHTML = figs.map(([k, v, s]) => `<div class="fig"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+}
+
+function dimH(x1, x2, y, fs, label, c) {
+  const t = fs * 0.4;
+  return `<g class="${c}-dim" stroke-width="${fs * 0.07}"><line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line x1="${x1}" y1="${y - t}" x2="${x1}" y2="${y + t}"/><line x1="${x2}" y1="${y - t}" x2="${x2}" y2="${y + t}"/></g>
+  <rect x="${(x1 + x2) / 2 - fs * 2.2}" y="${y - fs * 0.7}" width="${fs * 4.4}" height="${fs * 1.3}" fill="${c === 'bp' ? 'var(--print)' : 'var(--sheet)'}"/>
+  <text x="${(x1 + x2) / 2}" y="${y + fs * 0.35}" text-anchor="middle" font-size="${fs * 0.85}" class="${c}-t num">${label}</text>`;
+}
+function dimV(y1, y2, x, fs, label, c) {
+  const t = fs * 0.4, my = (y1 + y2) / 2;
+  return `<g class="${c}-dim" stroke-width="${fs * 0.07}"><line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/><line x1="${x - t}" y1="${y1}" x2="${x + t}" y2="${y1}"/><line x1="${x - t}" y1="${y2}" x2="${x + t}" y2="${y2}"/></g>
+  <g transform="rotate(-90 ${x} ${my})"><rect x="${x - fs * 2.2}" y="${my - fs * 0.7}" width="${fs * 4.4}" height="${fs * 1.3}" fill="${c === 'bp' ? 'var(--print)' : 'var(--sheet)'}"/>
+  <text x="${x}" y="${my + fs * 0.35}" text-anchor="middle" font-size="${fs * 0.85}" class="${c}-t num">${label}</text></g>`;
+}
+
+let dragIdx = -1;
+function wireDraw() {
+  const svg = $('#drawSvg'); if (!svg) return;
+  const toPt = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()); const sn = S.grid / 100; return [clamp(Math.round(q.x / sn) * sn, 0, S.grid), clamp(Math.round(q.y / sn) * sn, 0, S.grid)]; };
+  svg.addEventListener('pointerdown', e => {
+    const hit = e.target.closest('.sv-v');
+    if (hit) { dragIdx = +hit.dataset.i; svg.setPointerCapture(e.pointerId); return; }
+    S.poly.push(toPt(e)); update();
+  });
+  svg.addEventListener('pointermove', e => {
+    if (dragIdx < 0) return;
+    S.poly[dragIdx] = toPt(e);
+    const c = svg.querySelector(`.sv-v[data-i="${dragIdx}"]`); if (c) { c.setAttribute('cx', S.poly[dragIdx][0]); c.setAttribute('cy', S.poly[dragIdx][1]); }
+    const pg = svg.querySelector('polygon'); if (pg) pg.setAttribute('points', S.poly.map(p => p.join(',')).join(' '));
+  });
+  const end = () => { if (dragIdx >= 0) { dragIdx = -1; update(); } };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+}
+
+/* =====================================================================
+   8. A-01 blueprint
+   ===================================================================== */
+function edgeGeom(r, fd, edge) {
+  // SVG coords, front at bottom
+  const sx = r.x, sy = fd - r.y - r.h;
+  switch (edge) {
+    case 'front': return { p: [sx, sy + r.h], t: [1, 0], n: [0, -1], len: r.w };
+    case 'rear': return { p: [sx, sy], t: [1, 0], n: [0, 1], len: r.w };
+    case 'left': return { p: [sx, sy], t: [0, 1], n: [1, 0], len: r.h };
+    default: return { p: [sx + r.w, sy], t: [0, 1], n: [-1, 0], len: r.h };
+  }
+}
+
+function renderPlan() {
+  const fw = D.fw, fd = D.fd, rooms = D.rooms;
+  const fs = Math.max(fw, fd) / 38, pad = Math.max(fw, fd) * 0.13;
+  const OUT = 0.75, IN = 0.375;
+  const tint = { living: 0.10, master: 0.07, bed: 0.07, kitchen: 0.13, dining: 0.04, bath: 0.16, pooja: 0.12, stair: 0.02, out: 0.0, balcony: 0.0, parking: 0.03, parking2: 0.03, utility: 0.1 };
+  let g = '';
+  // grid
+  let grid = '';
+  for (let x = 0; x <= fw + 0.01; x += 5) grid += `<line x1="${x}" y1="0" x2="${x}" y2="${fd}" stroke="var(--print-dim)" stroke-width="0.04" opacity=".35"/>`;
+  for (let y = 0; y <= fd + 0.01; y += 5) grid += `<line x1="0" y1="${fd - y}" x2="${fw}" y2="${fd - y}" stroke="var(--print-dim)" stroke-width="0.04" opacity=".35"/>`;
+  // room fills + walls
+  rooms.forEach(r => {
+    const sx = r.x, sy = fd - r.y - r.h;
+    g += `<rect x="${sx}" y="${sy}" width="${r.w}" height="${r.h}" class="bp-fill" fill="var(--print-line)" fill-opacity="${tint[r.t] || 0}"/>`;
+  });
+  rooms.forEach(r => { const sx = r.x, sy = fd - r.y - r.h; g += `<rect x="${sx}" y="${sy}" width="${r.w}" height="${r.h}" class="bp-wall" stroke-width="${IN}"/>`; });
+  g += `<rect x="0" y="0" width="${fw}" height="${fd}" class="bp-wall" stroke-width="${OUT}"/>`;
+  // openings
+  let open = '';
+  rooms.forEach(r => {
+    if (r.openFront) {
+      const e = edgeGeom(r, fd, 'front');
+      open += `<line x1="${e.p[0] + 0.9}" y1="${e.p[1]}" x2="${e.p[0] + r.w - 0.9}" y2="${e.p[1]}" class="bp-cut" stroke-width="${OUT + 0.2}"/>`;
+      open += `<rect x="${e.p[0] - 0.1}" y="${e.p[1] - 0.9}" width="1" height="1" fill="var(--print-line)"/><rect x="${e.p[0] + r.w - 0.9}" y="${e.p[1] - 0.9}" width="1" height="1" fill="var(--print-line)"/>`;
+    }
+    if (r.rail) {
+      const e = edgeGeom(r, fd, 'front');
+      open += `<line x1="${e.p[0] + 0.4}" y1="${e.p[1]}" x2="${e.p[0] + r.w - 0.4}" y2="${e.p[1]}" class="bp-cut" stroke-width="${OUT + 0.2}"/>`;
+      open += `<line x1="${e.p[0] + 0.4}" y1="${e.p[1] - 0.15}" x2="${e.p[0] + r.w - 0.4}" y2="${e.p[1] - 0.15}" class="bp-thin" stroke-width="0.14" stroke-dasharray="0.5 0.35"/>`;
+    }
+    r.windows.forEach(wn => {
+      const e = edgeGeom(r, fd, wn.edge), off = (e.len - wn.w) / 2;
+      const a = [e.p[0] + e.t[0] * off, e.p[1] + e.t[1] * off], b = [a[0] + e.t[0] * wn.w, a[1] + e.t[1] * wn.w];
+      open += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" class="bp-cut" stroke-width="${OUT - 0.12}"/>`;
+      [-0.26, 0, 0.26].forEach(o => { open += `<line x1="${a[0] + e.n[0] * o}" y1="${a[1] + e.n[1] * o}" x2="${b[0] + e.n[0] * o}" y2="${b[1] + e.n[1] * o}" class="bp-thin" stroke-width="0.07"/>`; });
+    });
+    r.doors.forEach(dr => {
+      const e = edgeGeom(r, fd, dr.edge), dw = Math.max(1.5, Math.min(dr.w, e.len - 1));
+      const off = dr.arch ? (e.len - dw) / 2 : Math.min(1.0, (e.len - dw) / 2);
+      const p0 = [e.p[0] + e.t[0] * off, e.p[1] + e.t[1] * off], p1 = [p0[0] + e.t[0] * dw, p0[1] + e.t[1] * dw];
+      open += `<line x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" class="bp-cut" stroke-width="${(r.ext[dr.edge] ? OUT : IN) + 0.06}"/>`;
+      if (!dr.arch) {
+        const leaf = [p0[0] + e.n[0] * dw, p0[1] + e.n[1] * dw];
+        const cross = e.t[0] * e.n[1] - e.t[1] * e.n[0];
+        open += `<line x1="${p0[0]}" y1="${p0[1]}" x2="${leaf[0]}" y2="${leaf[1]}" class="bp-thin" stroke-width="${dr.main ? 0.2 : 0.13}"/>`;
+        open += `<path d="M${p1[0]} ${p1[1]} A${dw} ${dw} 0 0 ${cross > 0 ? 1 : 0} ${leaf[0]} ${leaf[1]}" class="bp-thin" stroke-width="0.07" stroke-dasharray="0.3 0.2"/>`;
+      }
+    });
+  });
+  // stair treads
+  let stairs = '';
+  rooms.filter(r => r.t === 'stair').forEach(r => {
+    const sx = r.x, sy = fd - r.y - r.h, tread = 0.85;
+    for (let yy = sy + 0.6; yy < sy + r.h - 0.3; yy += tread) stairs += `<line x1="${sx + 0.3}" y1="${yy}" x2="${sx + r.w - 0.3}" y2="${yy}" class="bp-thin" stroke-width="0.07"/>`;
+    stairs += `<line x1="${sx + r.w / 2}" y1="${sy + r.h - 0.8}" x2="${sx + r.w / 2}" y2="${sy + 1.4}" class="bp-thin" stroke-width="0.12"/><path d="M${sx + r.w / 2 - 0.5} ${sy + 2.1} L${sx + r.w / 2} ${sy + 1.2} L${sx + r.w / 2 + 0.5} ${sy + 2.1}" class="bp-thin" stroke-width="0.12"/>`;
+  });
+  // cars
+  let cars = '';
+  rooms.filter(r => r.t === 'parking').forEach(r => {
+    const n = Math.max(1, Math.min(3, Math.floor(r.w / 9))), sy = fd - r.y - r.h;
+    for (let i = 0; i < n; i++) {
+      const cw = 6, ch = Math.min(14, r.h - 2), cx = r.x + (i + 0.5) * r.w / n - cw / 2, cy = sy + (r.h - ch) / 2;
+      cars += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="1.4" class="bp-thin" stroke-width="0.1"/><rect x="${cx + 0.8}" y="${cy + ch * 0.3}" width="${cw - 1.6}" height="${ch * 0.4}" rx="0.6" class="bp-thin" stroke-width="0.07"/>`;
+    }
+  });
+  // labels
+  let labels = '';
+  rooms.forEach(r => {
+    const cx = r.x + r.w / 2, cy = fd - r.y - r.h / 2;
+    const size = clamp(Math.min(r.w, r.h) / 6.5, 0.55, fs * 1.05);
+    const name = (r.n.length * size * 0.74 < r.w - 0.8) ? r.n : r.s;
+    const showDim = r.h > size * 3.2 && r.w > size * 7.6;
+    labels += `<text x="${cx}" y="${cy + (showDim ? -size * 0.2 : size * 0.35)}" text-anchor="middle" font-size="${size}" font-weight="600" letter-spacing="${size * 0.05}" class="bp-t">${esc(name.toUpperCase())}</text>`;
+    if (showDim) labels += `<text x="${cx}" y="${cy + size * 1.05}" text-anchor="middle" font-size="${size * 0.78}" class="bp-t2 num">${ftin(r.w)} × ${ftin(r.h)}</text>`;
+  });
+  // entry arrow
+  const sit = rooms.find(r => r.t === 'out');
+  let entry = '';
+  if (sit) { const ex = sit.x + sit.w / 2; entry = `<path d="M${ex} ${fd + 3.2} L${ex} ${fd + 0.9} M${ex - 0.7} ${fd + 1.8} L${ex} ${fd + 0.9} L${ex + 0.7} ${fd + 1.8}" class="bp-thin" stroke-width="0.16"/><text x="${ex}" y="${fd + 4.4}" text-anchor="middle" font-size="${fs * 0.7}" class="bp-t2" letter-spacing="${fs * 0.1}">ENTRY</text>`; }
+  const vb = [-pad, -pad * 0.9, fw + pad * 2, fd + pad * 2.2];
+  const svg = `<svg id="planSvg" xmlns="http://www.w3.org/2000/svg" viewBox="${vb.join(' ')}" role="img" aria-label="Floor plan ${ftin(fw)} by ${ftin(fd)}, ${S.bhk} BHK">
+    <rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="var(--print)"/>
+    ${grid}${g}${open}${stairs}${cars}${labels}${entry}
+    ${dimH(0, fw, fd + pad * 0.95, fs, ftin(fw), 'bp')}
+    ${dimV(0, fd, fw + pad * 0.45, fs, ftin(fd), 'bp')}
+    ${arrowNorth(-pad * 0.45, pad * 0.35, fs * 1.2, 'bp')}
+  </svg>`;
+  $('#planSvgWrap').innerHTML = svg;
+  const lvName = planLevels().find(l => l.v === S.planLevel).n;
+  $('#planTitle').innerHTML = [
+    ['Sheet', 'A-01'], ['Drawing', lvName], ['Unit', `${S.bhk} BHK`], ['Footprint', `${fmt(D.foot)} ft²`], ['Carpet (per floor)', `${fmt(D.carpet)} ft²`], ['Scale', 'NTS · feet']
+  ].map(([k, v]) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  // room table
+  const rows = rooms.map(r => {
+    const c = nbcCheck(r);
+    const st = !c ? '<span class="chip" style="color:var(--ink-3)">—</span>' : c.ok ? `<span class="chip ok">${ICON.ok}Meets NBC</span>` : `<span class="chip warn" title="${esc(c.rule.rule)}">${ICON.warn}${c.why}</span>`;
+    return `<tr><td>${esc(r.n)}</td><td class="n">${ftin(r.w)} × ${ftin(r.h)}</td><td class="n">${fmt(r.area)}</td><td class="n">${fmt(r.area * SQFT_M2, 1)}</td><td>${st}</td></tr>`;
+  }).join('');
+  $('#roomTable').innerHTML = `<thead><tr><th>Room</th><th class="n">Size</th><th class="n">ft²</th><th class="n">m²</th><th>NBC 2016</th></tr></thead><tbody>${rows}</tbody>`;
+  const nf = D.nbcFails;
+  $('#nbcSummary').innerHTML = nf === 0 ? `<span class="chip ok">${ICON.ok}All ${D.nbc.length} checked rooms meet the minimums</span>` : `<span class="chip warn">${ICON.warn}${nf} of ${D.nbc.length} rooms below minimum</span> Try fewer bedrooms or a bigger footprint.`;
+  $('#outBHK').textContent = `${S.bhk} BHK`;
+}
+
+$('#dlSvg').addEventListener('click', () => {
+  const svg = $('#planSvg'); if (!svg) return;
+  const cs = getComputedStyle(document.documentElement);
+  let txt = svg.outerHTML.replace(/var\(--([a-z0-9-]+)\)/g, (m, v) => cs.getPropertyValue('--' + v).trim() || '#000');
+  const css = `<style>.bp-wall{fill:none;stroke:${cs.getPropertyValue('--print-line')}}.bp-cut{stroke:${cs.getPropertyValue('--print')}}.bp-thin{fill:none;stroke:${cs.getPropertyValue('--print-line')}}.bp-dim{fill:none;stroke:${cs.getPropertyValue('--print-dim')}}.bp-t{fill:${cs.getPropertyValue('--print-line')}}.bp-t2{fill:${cs.getPropertyValue('--print-dim')}}text{font-family:Barlow,Arial,sans-serif}</style>`;
+  txt = txt.replace(/(<svg[^>]*>)/, '$1' + css);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], { type: 'image/svg+xml' }));
+  a.download = `buildverse-blueprint-${S.bhk}bhk.svg`; document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* =====================================================================
+   9. A-02 3D model
+   ===================================================================== */
+let E3 = null, dirty3D = true, loop3D = false, lastT = 0;
+const STY = {
+  modern: { wall: '#F1F0EC', band: '#3B3F45', glass: '#2E4C66', frame: '#26292E', accent: '#9A6436', parapet: '#F1F0EC', plinth: '#8C8F93', winH: 5.6, chajja: false },
+  contemporary: { wall: '#C9C3B8', band: '#F5F3EF', glass: '#35586F', frame: '#F5F3EF', accent: '#5E4330', parapet: '#C9C3B8', plinth: '#7E7A73', winH: 4.6, chajja: true },
+  traditional: { wall: '#EFE1C2', band: '#E4D2AC', glass: '#2A3A40', frame: '#6E4020', accent: '#6E4020', parapet: '#EFE1C2', plinth: '#9C7E62', winH: 4.4, chajja: true }
+};
+const FLOORC = { living: '#C8A57A', master: '#D6BC92', bed: '#D6BC92', kitchen: '#BFC4C7', dining: '#C8A57A', bath: '#9FB3BF', pooja: '#E0B96A', stair: '#A7A29A', out: '#9E9A92', balcony: '#9E9A92', parking: '#8D8D8D', parking2: '#8D8D8D', utility: '#B3B7B9' };
+
+function start3D() {
+  if (!E3) {
+    try {
+      E3 = BV3D.create($('#c3d'), { shadowRes: 2048 });
+      BV3D.orbit(E3, { onInteract: () => { S.spin = false; $('#inSpin').checked = false; } });
+      E3.camera.minDist = 20;
+    } catch (err) {
+      $('.stage').insertAdjacentHTML('beforeend', `<div class="err">3D view needs WebGL2. Try Chrome or Edge on a recent phone or laptop.<br>(${esc(err.message)})</div>`);
+      return;
+    }
+  }
+  if (!loop3D) { loop3D = true; lastT = performance.now(); requestAnimationFrame(tick3D); }
+}
+function tick3D(t) {
+  if (activeSheet !== 'model') { loop3D = false; return; }
+  const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+  if (dirty3D) { build3D(); dirty3D = false; }
+  if (S.spin) E3.camera.theta += dt * 0.12;
+  const u = (S.hour - 6) / 12, el = Math.sin(Math.PI * u);
+  E3.sun.dir = BV3D.norm3([Math.cos(Math.PI * u) * 0.95, el * 0.95 + 0.03, 0.38]);
+  const warm = 1 - Math.min(1, el * 1.6);
+  const mix = (a, b, k) => BV3D.color(a).map((v, i) => v + (BV3D.color(b)[i] - v) * k);
+  E3.sun.color = mix('#fff4e2', '#ff9c55', warm);
+  E3.sun.intensity = 1.7 + el * 0.5;
+  E3.skyColors.horizon = mix('#d6e6f4', '#f2c29a', warm * 0.8);
+  E3.render();
+  requestAnimationFrame(tick3D);
+}
+
+function build3D() {
+  const e = E3; e.clear();
+  const st = STY[S.style], H = 10, PL = 1.5;
+  const fw = D.fw, fd = D.fd, L = D.levels;
+  // plot frame in world coords: x right, z toward viewer (front/road), y up
+  let plotW, plotD, bx0, zf, boundary;
+  if (S.plotMode === 'rect') {
+    plotW = S.w; plotD = S.d; bx0 = -S.w / 2 + S.setS; zf = S.d / 2 - S.setF;
+    boundary = [[-S.w / 2, -S.d / 2], [S.w / 2, -S.d / 2], [S.w / 2, S.d / 2], [-S.w / 2, S.d / 2]];
+  } else {
+    const ps = D.ps; plotW = Math.max(ps.bw, 30); plotD = Math.max(ps.bd, 30);
+    bx0 = -fw / 2; zf = fd / 2;
+    boundary = S.poly.length >= 3 ? S.poly.map(([x, y]) => [x - ps.cx, y - ps.cy]) : [];
+  }
+  const span = Math.max(plotW, plotD, 40);
+  // ground, road, context
+  e.mesh('box', { pos: [0, -0.5, 0], scale: [3000, 1, 3000], color: '#7E9168', castShadow: false, spec: 0 });
+  const roadZ = (S.plotMode === 'rect' ? S.d / 2 : plotD / 2) + 11;
+  e.mesh('box', { pos: [0, -0.02, roadZ], scale: [3000, 0.1, 20], color: '#45494F', castShadow: false, spec: 0.05 });
+  for (let x = -300; x <= 300; x += 14) e.mesh('box', { pos: [x, 0.05, roadZ], scale: [6, 0.05, 0.5], color: '#E8E6DF', castShadow: false });
+  e.mesh('box', { pos: [0, 0.1, roadZ - 11], scale: [3000, 0.3, 2], color: '#B9B4A8', castShadow: false });
+  // plot pad
+  if (S.plotMode === 'rect') e.mesh('box', { pos: [0, 0.02, 0], scale: [S.w, 0.2, S.d], color: '#B7AE98', castShadow: false, spec: 0 });
+  // compound wall
+  const wallH = 5;
+  for (let i = 0; i < boundary.length; i++) {
+    const [x1, z1] = boundary[i], [x2, z2] = boundary[(i + 1) % boundary.length];
+    const segs = [];
+    const isFront = S.plotMode === 'rect' && i === 2;
+    if (isFront) { const gate = Math.min(12, S.w * 0.4); segs.push([x1, z1, gate / 2, z1]); segs.push([-gate / 2, z1, x2, z2]); }
+    else segs.push([x1, z1, x2, z2]);
+    segs.forEach(([a, b, c, d]) => {
+      const len = Math.hypot(c - a, d - b); if (len < 0.3) return;
+      e.mesh('box', { pos: [(a + c) / 2, wallH / 2, (b + d) / 2], rot: [0, -Math.atan2(d - b, c - a), 0], scale: [len, wallH, 0.6], color: '#D9D4C8' });
+      e.mesh('box', { pos: [(a + c) / 2, wallH + 0.15, (b + d) / 2], rot: [0, -Math.atan2(d - b, c - a), 0], scale: [len + 0.2, 0.3, 0.8], color: '#A9A396' });
+    });
+    if (isFront) {
+      const gate = Math.min(12, S.w * 0.4);
+      [-gate / 2, gate / 2].forEach(gx => e.mesh('box', { pos: [gx, 3.3, z1], scale: [1.4, 6.6, 1.4], color: '#CFC9BC' }));
+      e.mesh('box', { pos: [-gate / 4, 2.4, z1 + 0.2], rot: [0, 0.35, 0], scale: [gate / 2 - 0.3, 4.6, 0.2], color: '#2B2F33' });
+      e.mesh('box', { pos: [gate / 4, 2.4, z1 + 0.2], rot: [0, -0.35, 0], scale: [gate / 2 - 0.3, 4.6, 0.2], color: '#2B2F33' });
+    }
+  }
+  // neighbours
+  const R = rng(7);
+  [[-1, 0], [1, -0.7], [-1, -1], [1, -1.6], [0, -1]].forEach(([sx, sz], k) => {
+    const nw = 26 + R() * 10, nd = 30 + R() * 12, nh = 11 + Math.floor(R() * 2) * 10;
+    const x = sx * (plotW / 2 + 14 + nw / 2), z = sz * (plotD / 2 + 16 + nd / 2);
+    e.mesh('box', { pos: [x, nh / 2, z], scale: [nw, nh, nd], color: ['#E6DCC8', '#D8DEE3', '#EAD7C0', '#DDE3D5', '#E2D8E0'][k], win: { size: [5, 10], lit: 0, seed: k, color: [0, 0, 0] }, spec: 0.05 });
+  });
+  // trees
+  const trees = [[-plotW / 2 - 6, plotD / 2 - 4], [-plotW / 2 - 7, -plotD / 5], [plotW / 2 + 7, -plotD / 3], [plotW / 2 + 6, plotD / 2 - 8], [-plotW * 1.3, plotD * 0.2], [plotW * 1.4, -plotD * 0.1]];
+  trees.forEach(([x, z], k) => {
+    if (k % 2 === 0) { // coconut
+      const th = 26 + R() * 10;
+      e.mesh('cyl', { pos: [x, th / 2, z], rot: [0.05, 0, 0.06 * (k - 2)], scale: [0.9, th, 0.9], color: '#7A6650' });
+      for (let j = 0; j < 7; j++) { const a = j / 7 * Math.PI * 2; e.mesh('box', { pos: [x + Math.cos(a) * 3.2, th - 0.3, z + Math.sin(a) * 3.2], rot: [0, -a, 0.45], scale: [7, 0.25, 1.6], color: '#44693A' }); }
+    } else {
+      e.mesh('cyl', { pos: [x, 3.5, z], scale: [1.2, 7, 1.2], color: '#6B5540' });
+      e.mesh('sphere', { pos: [x, 10, z], scale: [11, 9, 11], color: '#3F6634', spec: 0.05 });
+      e.mesh('sphere', { pos: [x + 2.5, 12, z - 1], scale: [7, 6, 7], color: '#4B7439', spec: 0.05 });
+    }
+  });
+
+  // building
+  const wx = x => bx0 + x, wz = y => zf - y;
+  e.mesh('box', { pos: [bx0 + fw / 2, PL / 2, zf - fd / 2], scale: [fw + 1, PL, fd + 1], color: st.plinth });
+  const kinds = [];
+  for (let i = 0; i < L; i++) kinds.push(S.stilt && i === 0 ? 'stilt' : (i === (S.stilt ? 1 : 0) ? (S.stilt ? 'upper' : 'ground') : 'upper'));
+  const topIdx = L - 1;
+  const cut = S.cut;
+  let stairRoom = null;
+  kinds.forEach((kind, i) => {
+    const yb = PL + i * H;
+    const rooms = layoutPlan(fw, fd, S.bhk, D.stair, kind);
+    stairRoom = rooms.find(r => r.t === 'stair') || stairRoom;
+    const isTop = i === topIdx, cutHere = cut && isTop;
+    const wh = cutHere ? 4 : H - 0.5;
+    // slab under the floor above (roof of this level)
+    if (!(cutHere)) {
+      e.mesh('box', { pos: [bx0 + fw / 2, yb + H - 0.25, zf - fd / 2], scale: [fw + 0.8, 0.5, fd + 0.8], color: '#D9D8D3' });
+      if (S.style !== 'traditional') e.mesh('box', { pos: [bx0 + fw / 2, yb + H - 0.42, zf - fd / 2], scale: [fw + (S.style === 'contemporary' ? 1.6 : 1.0), 0.74, fd + (S.style === 'contemporary' ? 1.6 : 1.0)], color: st.band });
+    }
+    if (kind === 'stilt') {
+      const nx = Math.max(2, Math.ceil(fw / 12) + 1), nz = Math.max(2, Math.ceil(fd / 12) + 1);
+      for (let a = 0; a < nx; a++) for (let b = 0; b < nz; b++) e.mesh('box', { pos: [wx(a * fw / (nx - 1)), yb + (H - 0.5) / 2, wz(b * fd / (nz - 1))], scale: [1.2, H - 0.5, 1.2], color: '#DAD8D2' });
+      rooms.filter(r => r.t === 'parking').forEach(r => {
+        const n = Math.max(1, Math.min(3, Math.floor(r.w / 9)));
+        const cols = ['#B23A2F', '#E9E9E6', '#2F4F7F'];
+        for (let c = 0; c < n; c++) {
+          const cx = wx(r.x + (c + 0.5) * r.w / n), cz = wz(r.y + r.h / 2);
+          e.mesh('box', { pos: [cx, yb + 1.6, cz], scale: [5.8, 2.2, 13], color: cols[c % 3], spec: 0.6 });
+          e.mesh('box', { pos: [cx, yb + 3.3, cz - 0.8], scale: [5.2, 1.6, 6.5], color: '#27313B', spec: 0.8 });
+        }
+      });
+      rooms.filter(r => r.t === 'stair').forEach(r => stairBlock(e, wx(r.x + r.w / 2), yb, wz(r.y + r.h / 2), r.w, r.h, H));
+      return;
+    }
+    // corner columns
+    [[0, 0], [fw, 0], [0, fd], [fw, fd]].forEach(([x, y]) => e.mesh('box', { pos: [wx(x), yb + wh / 2, wz(y)], scale: [1.1, wh, 1.1], color: st.wall }));
+    rooms.forEach(r => {
+      // floor finish (visible in cutaway)
+      if (cutHere) e.mesh('box', { pos: [wx(r.x + r.w / 2), yb + 0.06, wz(r.y + r.h / 2)], scale: [r.w - 0.2, 0.12, r.h - 0.2], color: FLOORC[r.t] || '#BBB', castShadow: false });
+      ['front', 'rear', 'left', 'right'].forEach(edge => {
+        const ext = r.ext[edge];
+        const horiz = edge === 'front' || edge === 'rear';
+        const len = horiz ? r.w : r.h;
+        const cx = horiz ? wx(r.x + r.w / 2) : wx(edge === 'left' ? r.x : r.x + r.w);
+        const cz = horiz ? wz(edge === 'front' ? r.y : r.y + r.h) : wz(r.y + r.h / 2);
+        if (ext) {
+          if (edge === 'front' && (r.t === 'out' || r.t === 'balcony')) {
+            if (r.t === 'out') {
+              [r.x + 0.8, r.x + r.w - 0.8].forEach(px => {
+                if (S.style === 'traditional') e.mesh('cyl', { pos: [wx(px), yb + wh / 2, cz], scale: [1.1, wh, 1.1], color: '#F5EFE2' });
+                else e.mesh('box', { pos: [wx(px), yb + wh / 2, cz], scale: [1, wh, 1], color: st.wall });
+              });
+            } else {
+              e.mesh('box', { pos: [cx, yb + 1.8, cz + 0.1], scale: [len - 0.6, 3.4, 0.15], color: '#9FC3D6', alpha: 0.45, castShadow: false });
+              e.mesh('box', { pos: [cx, yb + 3.55, cz + 0.1], scale: [len - 0.4, 0.2, 0.35], color: st.frame });
+            }
+            return;
+          }
+          const nx = horiz ? 0 : (edge === 'left' ? -1 : 1), nz = horiz ? (edge === 'front' ? 1 : -1) : 0;
+          e.mesh('box', { pos: [cx, yb + wh / 2, cz], scale: horiz ? [len, wh, 0.75] : [0.75, wh, len], color: st.wall, spec: 0.08 });
+          if (!cutHere) r.windows.filter(w => w.edge === edge).forEach(w => windowMesh(e, st, cx, yb, cz, nx, nz, w.w, r.t, horiz, i));
+        } else if (cutHere) {
+          e.mesh('box', { pos: [cx, yb + wh / 2, cz], scale: horiz ? [len, wh, 0.38] : [0.38, wh, len], color: '#EDEBE6' });
+        }
+      });
+      if (!cutHere && r.t === 'out') {
+        const dr = r.doors[0]; if (dr) e.mesh('box', { pos: [wx(r.x + r.w) - 0.1, yb + 3.5, wz(r.y + r.h / 2)], scale: [0.4, 7, 3.4], color: '#6B3E1E', spec: 0.3 });
+      }
+      if (r.t === 'stair' && (cutHere || !isTop)) stairBlock(e, wx(r.x + r.w / 2), yb, wz(r.y + r.h / 2), r.w, r.h, H, cutHere);
+    });
+    // modern fins
+    if (S.style === 'modern' && !cutHere) {
+      const fr = rooms.filter(r => r.ext.front && r.t !== 'out' && r.t !== 'balcony');
+      fr.forEach(r => { for (let k = 0; k < 4; k++) e.mesh('box', { pos: [wx(r.x + r.w - 0.8 - k * 1.1), yb + H / 2, wz(0) + 0.9], scale: [0.35, H - 0.6, 1.2], color: st.accent, spec: 0.2 }); });
+    }
+  });
+  // roof
+  const yTop = PL + L * H;
+  if (!cut) {
+    if (S.style === 'traditional') {
+      e.mesh('prism', { pos: [bx0 + fw / 2, yTop + 3.5, zf - fd / 2], rot: [0, Math.PI / 2, 0], scale: [fw + 4, 7, fd + 4], color: '#B4532F', spec: 0.1 });
+      e.mesh('box', { pos: [bx0 + fw / 2, yTop - 0.1, zf - fd / 2], scale: [fw + 4, 0.35, fd + 4], color: '#8E3F22' });
+    } else {
+      // parapet
+      const ph = 3.2, t = 0.5;
+      [[bx0 + fw / 2, zf, fw + 1, t], [bx0 + fw / 2, zf - fd, fw + 1, t]].forEach(([x, z, lx, lz]) => e.mesh('box', { pos: [x, yTop + ph / 2, z], scale: [lx, ph, lz], color: st.parapet }));
+      [[bx0, zf - fd / 2], [bx0 + fw, zf - fd / 2]].forEach(([x, z]) => e.mesh('box', { pos: [x, yTop + ph / 2, z], scale: [t, ph, fd + 1], color: st.parapet }));
+      // mumty + tank
+      if (stairRoom) {
+        const sx = wx(stairRoom.x + stairRoom.w / 2), sz = wz(stairRoom.y + stairRoom.h / 2);
+        e.mesh('box', { pos: [sx, yTop + 4, sz], scale: [stairRoom.w + 0.8, 8, stairRoom.h + 0.8], color: st.wall });
+        e.mesh('box', { pos: [sx, yTop + 8.2, sz], scale: [stairRoom.w + 1.6, 0.5, stairRoom.h + 1.6], color: st.band });
+        e.mesh('cyl', { pos: [sx, yTop + 11, sz], scale: [4.4, 5, 4.4], color: '#1E2124', spec: 0.4 });
+      } else e.mesh('cyl', { pos: [bx0 + fw * 0.75, yTop + 3, zf - fd * 0.75], scale: [4.4, 5, 4.4], color: '#1E2124', spec: 0.4 });
+      if (S.style === 'modern') {
+        for (let a = 0; a < 2; a++) for (let b = 0; b < Math.max(1, Math.floor(fw / 8) - 1); b++)
+          e.mesh('box', { pos: [bx0 + 4 + b * 6.5, yTop + 1.6, zf - 4 - a * 7.5], rot: [-0.3, 0, 0], scale: [5.6, 0.25, 3.6], color: '#1B2D4A', spec: 1.0 });
+      } else {
+        for (let b = 0; b < 6; b++) e.mesh('box', { pos: [bx0 + fw * 0.45, yTop + 8, zf - 2 - b * 1.8], scale: [fw * 0.55, 0.4, 0.45], color: st.accent });
+        [[0.18, 1], [0.72, 1], [0.18, 11], [0.72, 11]].forEach(([fx, dz]) => e.mesh('box', { pos: [bx0 + fw * fx, yTop + 4, zf - dz], scale: [0.6, 8, 0.6], color: st.accent }));
+      }
+    }
+  }
+  // sun/shadow framing
+  e.shadow.size = span * 0.85 + L * H * 0.6;
+  e.shadow.center = [0, L * H * 0.35, -2];
+  const c = e.camera;
+  const want = Math.max(span * 2.15, L * H * 3.0, 95);
+  if (!c._init || c._want !== want) { c.dist = want; c._want = want; if (!c._init) { c.theta = 0.45; c.phi = 1.1; } c._init = true; }
+  c.target = [0, Math.max(8, L * H * 0.42), 0];
+  c.maxDist = 900; c.far = 4000;
+  e.fog.near = 300; e.fog.far = 1500;
+  e.light.skyI = 0.62; e.light.groundI = 0.38;
+  renderModelInfo();
+}
+
+function windowMesh(e, st, cx, yb, cz, nx, nz, ww, type, horiz, lvl) {
+  const wh = type === 'bath' || type === 'utility' ? 2.2 : type === 'kitchen' ? 3.6 : st.winH;
+  const sill = type === 'bath' || type === 'utility' ? 6 : type === 'kitchen' ? 3.6 : (S.style === 'modern' ? 1.8 : 3);
+  const wy = yb + sill + wh / 2, o = 0.42;
+  const px = cx + nx * o, pz = cz + nz * o;
+  const fwid = S.style === 'modern' ? ww * 1.15 : ww;
+  e.mesh('box', { pos: [px, wy, pz], scale: horiz ? [fwid + 0.5, wh + 0.5, 0.18] : [0.18, wh + 0.5, fwid + 0.5], color: st.frame, spec: 0.2 });
+  e.mesh('box', { pos: [px + nx * 0.05, wy, pz + nz * 0.05], scale: horiz ? [fwid, wh, 0.18] : [0.18, wh, fwid], color: st.glass, spec: 1.2, emissive: S.hour > 17.2 || S.hour < 6.6 ? '#ffcf8a' : null, emissiveStrength: 0.25 });
+  if (st.chajja) e.mesh('box', { pos: [cx + nx * 1.0, wy + wh / 2 + 0.6, cz + nz * 1.0], scale: horiz ? [fwid + 1.6, 0.3, 2] : [2, 0.3, fwid + 1.6], color: st.band });
+}
+
+function stairBlock(e, x, yb, z, w, h, H, lowOnly) {
+  const steps = 16, rise = (H - 0.5) / steps, run = (h - 1) / steps;
+  const n = lowOnly ? 6 : steps;
+  for (let s = 0; s < n; s++) e.mesh('box', { pos: [x, yb + rise * (s + 0.5), z + h / 2 - 0.5 - run * (s + 0.5)], scale: [w - 1, rise, run], color: '#B9B5AD', castShadow: false });
+}
+
+function renderModelInfo() {
+  const h = D.levels * 10 + 1.5 + (S.style === 'traditional' ? 7 : 3.2);
+  const glaz = D.resRooms.reduce((s, r) => s + r.windows.reduce((a, w) => a + w.w * (r.t === 'bath' ? 2.2 : STY[S.style].winH), 0), 0);
+  const facade = 2 * (D.fw + D.fd) * 9.5;
+  $('#modelFigs').innerHTML = [
+    ['Overall height', `${fmt(h)} ft`, `${fmt(h * FT_M, 1)} m incl. roof`],
+    ['Levels', `${D.levels}`, S.stilt ? 'stilt + residential' : 'residential'],
+    ['Window-to-wall', `${fmt(glaz / facade * 100)}%`, 'good daylight at 15–25%'],
+    ['Built-up (all levels)', `${fmt(D.builtAll)} ft²`, `${fmt(D.builtAll * SQFT_M2)} m²`]
+  ].map(([k, v, s]) => `<div class="fig"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+  $('#hud3d').innerHTML = `<span>${S.style}</span><span>${S.stilt ? 'S+' + S.floors : S.floors > 1 ? 'G+' + (S.floors - 1) : 'G'}</span><span>${ftin(D.fw)} × ${ftin(D.fd)}</span>`;
+}
+
+/* =====================================================================
+   10. charts
+   ===================================================================== */
+function lineChart(el, o) {
+  const W = o.w || 560, H = o.h || 250, pl = o.w && o.w < 400 ? 34 : 46, pr = 12, pt = 12, pb = 38;
+  const iw = W - pl - pr, ih = H - pt - pb;
+  const X = v => pl + (v - o.x0) / (o.x1 - o.x0) * iw, Y = v => pt + ih - (v - o.y0) / (o.y1 - o.y0) * ih;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label)}">`;
+  o.yTicks.forEach(v => { s += `<line x1="${pl}" y1="${Y(v)}" x2="${W - pr}" y2="${Y(v)}" class="c-grid"/><text x="${pl - 8}" y="${Y(v) + 4}" text-anchor="end" class="c-lbl">${o.fy(v)}</text>`; });
+  o.xTicks.forEach(v => { s += `<text x="${X(v)}" y="${H - pb + 16}" text-anchor="middle" class="c-lbl">${o.fx(v)}</text>`; });
+  s += `<line x1="${pl}" y1="${pt + ih}" x2="${W - pr}" y2="${pt + ih}" class="c-axis"/>`;
+  s += `<text x="${pl + iw / 2}" y="${H - 4}" text-anchor="middle" class="c-ttl">${esc(o.xLabel)}</text>`;
+  o.series.forEach((se, k) => {
+    const d = se.ys.map((y, i) => `${i ? 'L' : 'M'}${X(o.xs[i]).toFixed(1)} ${Y(y).toFixed(1)}`).join(' ');
+    if (se.area) s += `<path d="${d} L${X(o.xs[o.xs.length - 1])} ${Y(o.y0)} L${X(o.xs[0])} ${Y(o.y0)}Z" class="c-a1"/>`;
+    s += `<path d="${d}" class="${se.cls}"/>`;
+    const li = se.ys.length - 1;
+    if (se.endDot) s += `<circle cx="${X(o.xs[li])}" cy="${Y(se.ys[li])}" r="4" class="${se.dot}"/>`;
+  });
+  if (o.marker) {
+    const m = o.marker;
+    s += `<line x1="${X(m.x)}" y1="${Y(o.y0)}" x2="${X(m.x)}" y2="${Y(m.y)}" class="c-mkline"/><circle cx="${X(m.x)}" cy="${Y(m.y)}" r="6" class="c-mk"/>`;
+    const tx = X(m.x) + (X(m.x) > W * 0.62 ? -10 : 10);
+    s += `<text x="${tx}" y="${Y(m.y) - 12}" text-anchor="${X(m.x) > W * 0.62 ? 'end' : 'start'}" class="c-ttl" font-weight="600">${esc(m.label)}</text>`;
+  }
+  s += `<g class="hov" visibility="hidden"><line class="c-hair" y1="${pt}" y2="${pt + ih}"/>${o.series.map(se => `<circle r="4" class="${se.dot}"/>`).join('')}<rect class="c-tipbg" rx="4" height="${18 + 15 * o.series.length}"/>${o.series.map(() => '<text class="c-tip"></text>').join('')}<text class="c-tip hx"></text></g>`;
+  s += `<rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="hit"/></svg>`;
+  el.innerHTML = s;
+  const svg = el.querySelector('svg'), hov = svg.querySelector('.hov');
+  const move = ev => {
+    const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse());
+    let bi = 0, bd = 1e9; o.xs.forEach((x, i) => { const d = Math.abs(X(x) - q.x); if (d < bd) { bd = d; bi = i; } });
+    const x = X(o.xs[bi]); hov.setAttribute('visibility', 'visible');
+    const hair = hov.querySelector('.c-hair'); hair.setAttribute('x1', x); hair.setAttribute('x2', x);
+    const dots = hov.querySelectorAll('circle'), tips = hov.querySelectorAll('.c-tip:not(.hx)');
+    o.series.forEach((se, k) => { dots[k].setAttribute('cx', x); dots[k].setAttribute('cy', Y(se.ys[bi])); tips[k].textContent = `${se.name}: ${o.fyTip(se.ys[bi])}`; });
+    const bw = Math.min(190, W * 0.55), bx = x + 12 + bw > W ? x - 12 - bw : x + 12;
+    const bg = hov.querySelector('.c-tipbg'); bg.setAttribute('x', bx); bg.setAttribute('y', pt + 4); bg.setAttribute('width', bw);
+    const hx = hov.querySelector('.hx'); hx.textContent = o.fxTip(o.xs[bi]); hx.setAttribute('x', bx + 8); hx.setAttribute('y', pt + 20);
+    tips.forEach((t, k) => { t.setAttribute('x', bx + 8); t.setAttribute('y', pt + 35 + k * 15); });
+  };
+  const hit = svg.querySelector('.hit');
+  hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => hov.setAttribute('visibility', 'hidden'));
+}
+
+function barList(el, items, o) {
+  o = o || {};
+  const max = o.max || Math.max(...items.map(i => i.v), 1e-9);
+  el.innerHTML = items.map(i => `<div class="bl" title="${esc(i.l)}">${esc(i.l)}</div><div class="bt" title="${esc(i.l)}: ${esc(i.t)}"><div class="bf${i.amber ? ' amber' : ''}" style="width:${clamp(i.v / max * 100, 0, 100)}%"></div></div><div class="bv">${i.t}</div>`).join('');
+}
+
+/* =====================================================================
+   11. S-01 safety sheet
+   ===================================================================== */
+function renderSafety() {
+  const sf = D.safety, se = D.seis;
+  $('#scoreBig').textContent = sf.score;
+  const chip = $('#scoreChip'); chip.className = 'chip ' + sf.band[1]; chip.innerHTML = ICON[sf.band[1]] + sf.band[0];
+  $('#scoreMark').style.left = sf.score + '%';
+  $('#factors').innerHTML = sf.factors.map(f => `<li><span class="d${f.pts ? '' : ' zero'}">${f.pts ? '−' + f.pts : '0'}</span><span>${esc(f.txt)}</span></li>`).join('');
+  $('#seisFigs').innerHTML = [
+    ['Height', `${se.h.toFixed(1)} m`, `${D.levels} level${D.levels > 1 ? 's' : ''} × 3.05 m`],
+    ['Natural period T', `${se.T.toFixed(2)} s`, S.system === 'steel' ? '0.085·h^0.75' : '0.09·h/√d'],
+    ['Spectral accel. Sa/g', se.sa.toFixed(2), `soil type ${S.soil}`],
+    ['Design coefficient Ah', se.Ah.toFixed(3), `(Z/2)(I/R)(Sa/g), R = ${se.R}`],
+    ['Seismic weight W', `${fmt(se.Wt)} kN`, 'dead + 25% live load'],
+    ['Base shear Vb', `${fmt(se.Vb)} kN`, `≈ ${fmt(se.Vb / 9.81)} tonnes sideways`],
+    ['Wind force', `${fmt(se.Fw)} kN`, `Vz = ${se.Vz.toFixed(1)} m/s`],
+    ['Governing load', se.gov, 'larger lateral load']
+  ].map(([k, v, s]) => `<div class="fig"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+  const xs = []; for (let t = 0; t <= 4.0001; t += 0.02) xs.push(+t.toFixed(2));
+  lineChart($('#specChart'), {
+    label: 'Design response spectrum', xs, x0: 0, x1: 4, y0: 0, y1: 3, w: 440, h: 260,
+    xTicks: [0, 1, 2, 3, 4], yTicks: [0, 0.5, 1, 1.5, 2, 2.5, 3],
+    fx: v => v, fy: v => v.toFixed(1), fxTip: v => `T = ${v.toFixed(2)} s`, fyTip: v => v.toFixed(2),
+    xLabel: 'Natural period T (seconds)',
+    series: [{ name: 'Sa/g', ys: xs.map(t => saG(t, S.soil)), cls: 'c-l1', dot: 'c-dot1', area: true }],
+    marker: { x: Math.min(se.T, 4), y: se.sa, label: `Your building · T ${se.T.toFixed(2)} s` }
+  });
+  barList($('#storeyBars'), se.levels.slice().reverse().map(l => ({ l: l.i === D.levels ? `Roof (L${l.i})` : S.stilt && l.i === 1 ? 'L1 (above stilt)' : `Level ${l.i}`, v: l.Q, t: `${fmt(l.Q, 1)} kN` })));
+  // precautions
+  const Pd = [], Pf = [], Ps = [], Pl = [];
+  Pd.push(['Get the structure designed and signed by a licensed structural engineer.', true]);
+  if (S.zone !== 'II' && S.system !== 'masonry') Pd.push(['Use ductile detailing (IS 13920): 135° stirrup hooks and closely spaced ties near beam–column joints.', true]);
+  if (S.system === 'rcc_omrf' && S.zone !== 'II') Pd.push(['Switch from an ordinary to a special moment-resisting frame (SMRF).', true]);
+  if (S.system === 'masonry') Pd.push(['Provide seismic bands at plinth, lintel and roof level, plus vertical bars at corners (IS 4326).', true]);
+  if (S.stilt) Pd.push(['Design stilt-floor columns and beams for 2.5× the storey forces (IS 1893) and never remove walls later.', true]);
+  Pd.push(['Keep columns continuous from foundation to roof; avoid floating columns and heavy cantilevers.', false]);
+  Pd.push(['Place the rooftop water tank over columns, not over the middle of a slab.', false]);
+  Pf.push(['Do a soil investigation (safe bearing capacity) before fixing the foundation.', true]);
+  if (S.soil === 'III') Pf.push(['On soft soil, use a raft or pile foundation.', true]);
+  if (S.coastal && S.soil === 'III') Pf.push(['Check liquefaction risk for saturated coastal sand.', true]);
+  Pf.push(['Tie all column footings together with plinth beams.', false]);
+  Ps.push(['Helmets, safety shoes and reflective vests for everyone on site.', false]);
+  Ps.push(['Full-body harness above 2 m; guard rails on open slab edges and stair openings.', false]);
+  Ps.push(['Shore and barricade excavations deeper than 1.5 m.', false]);
+  Ps.push(['Cure concrete for at least 7 days (10 days for blended cements).', false]);
+  Ps.push(['Run temporary power through an RCCB and keep cables off wet ground.', false]);
+  Pl.push(['Keep the staircase free of storage; fit a smoke detector near the kitchen.', false]);
+  Pl.push(['Store LPG cylinders in a ventilated spot, away from the switchboard.', false]);
+  if (se.h >= 15) Pl.push(['At 15 m or more, get a fire NOC and plan two staircases (NBC Part 4).', true]);
+  if (S.coastal) Pl.push(['Anchor water tanks, solar panels and parapets against cyclone winds.', true]);
+  const grp = (t, list) => `<div><h3 style="margin-top:0">${t}</h3><ul class="checklist">${list.map(([x, hi]) => `<li style="color:${hi ? 'var(--amber)' : 'var(--ink-3)'}">${hi ? ICON.warn : ICON.dot}<span class="${hi ? 'hi' : ''}" style="color:${hi ? 'var(--ink)' : 'var(--ink-2)'}">${esc(x)}</span></li>`).join('')}</ul></div>`;
+  $('#precautions').innerHTML = grp('Structural design', Pd) + grp('Foundation', Pf) + grp('Construction site', Ps) + grp('Fire & life safety', Pl);
+}
+
+/* =====================================================================
+   12. Q-01 AI cost model (neural network trained in-browser)
+   ===================================================================== */
+const TIERS = ['metro', 'tier2', 'rural'], QUALS = ['basic', 'standard', 'premium'], SOILS = ['I', 'II', 'III'], ZONES = ['II', 'III', 'IV', 'V'], SYSTEMS = ['rcc_smrf', 'rcc_omrf', 'masonry', 'steel'];
+const GROUPS = [['Built-up area', [0]], ['Floors', [1]], ['Location', [2, 3, 4]], ['Finish quality', [5]], ['Soil type', [6]], ['Seismic zone', [7]], ['Structure', [8, 9, 10, 11]]];
+function trueCost(p, r) {
+  let rate = { metro: 2350, tier2: 2000, rural: 1750 }[p.tier] * { basic: 0.8, standard: 1, premium: 1.4 }[p.quality] * { rcc_smrf: 1, rcc_omrf: 0.95, masonry: 0.84, steel: 1.13 }[p.system];
+  rate *= (1 + 0.1 * Math.exp(-p.area / 1500)) * (1 - 0.018 * (p.floors - 1));
+  rate += { I: 0, II: 55, III: 170 }[p.soil] + { II: 0, III: 45, IV: 95, V: 160 }[p.zone] + (p.floors >= 4 ? 110 : 0);
+  const months = (3.5 + p.area / 850 + p.floors * 0.9 + { basic: -0.5, standard: 0, premium: 2 }[p.quality] + { I: 0, II: 0.4, III: 1.2 }[p.soil] + (p.system === 'steel' ? -1.5 : 0));
+  return { cost: p.area * rate * Math.exp(randn(r) * 0.06), months: months * Math.exp(randn(r) * 0.07) };
+}
+function encode(p) {
+  return [Math.log(p.area), p.floors, p.tier === 'metro' ? 1 : 0, p.tier === 'tier2' ? 1 : 0, p.tier === 'rural' ? 1 : 0, QUALS.indexOf(p.quality), SOILS.indexOf(p.soil), ZONES.indexOf(p.zone), ...SYSTEMS.map(s => p.system === s ? 1 : 0), 1];
+}
+const NIN = 13, NH = 24, NOUT = 2;
+const AI = { trained: false, training: false, hist: { tr: [], va: [] } };
+
+function makeData() {
+  const r = rng(2026), X = [], Y = [];
+  for (let i = 0; i < 600; i++) {
+    const floors = 1 + Math.floor(Math.pow(r(), 1.4) * 5);
+    let system = SYSTEMS[Math.floor(r() * 4)]; if (system === 'masonry' && floors > 3) system = 'rcc_smrf';
+    const p = { area: Math.exp(Math.log(500) + r() * (Math.log(7000) - Math.log(500))), floors, tier: TIERS[Math.floor(r() * 3)], quality: QUALS[Math.floor(r() * 3)], soil: SOILS[Math.floor(r() * 3)], zone: ZONES[Math.floor(r() * 4)], system };
+    const t = trueCost(p, r);
+    X.push(encode(p)); Y.push([Math.log(t.cost), Math.log(t.months)]);
+  }
+  return { X, Y };
+}
+
+function trainModel() {
+  if (AI.training) return;
+  AI.training = true; AI.trained = false; AI.hist = { tr: [], va: [] };
+  $('#trainBtn').disabled = true; $('#trainBtn').textContent = 'Training…';
+  const { X, Y } = makeData(), r = rng(42);
+  const nTr = 480;
+  // standardize
+  const mu = [], sd = [];
+  for (let j = 0; j < NIN; j++) { const col = X.slice(0, nTr).map(x => x[j]); const m = col.reduce((a, b) => a + b, 0) / nTr; const v = col.reduce((a, b) => a + (b - m) ** 2, 0) / nTr; mu.push(m); sd.push(Math.sqrt(v) || 1); }
+  const ymu = [0, 1].map(k => Y.slice(0, nTr).reduce((a, y) => a + y[k], 0) / nTr);
+  const ysd = [0, 1].map(k => Math.sqrt(Y.slice(0, nTr).reduce((a, y) => a + (y[k] - ymu[k]) ** 2, 0) / nTr));
+  const Xs = X.map(x => x.map((v, j) => (v - mu[j]) / sd[j])), Ys = Y.map(y => y.map((v, k) => (v - ymu[k]) / ysd[k]));
+  const net = { W1: new Float64Array(NH * NIN), b1: new Float64Array(NH), W2: new Float64Array(NOUT * NH), b2: new Float64Array(NOUT) };
+  for (let i = 0; i < net.W1.length; i++) net.W1[i] = randn(r) * Math.sqrt(2 / NIN);
+  for (let i = 0; i < net.W2.length; i++) net.W2[i] = randn(r) * Math.sqrt(1 / NH);
+  const params = ['W1', 'b1', 'W2', 'b2'];
+  const M = {}, V = {}, G = {}; params.forEach(p => { M[p] = new Float64Array(net[p].length); V[p] = new Float64Array(net[p].length); G[p] = new Float64Array(net[p].length); });
+  let step = 0; const lr0 = 0.01, b1 = 0.9, b2 = 0.999;
+  const h = new Float64Array(NH), z = new Float64Array(NH), y = new Float64Array(NOUT);
+  function fwd(x) {
+    for (let i = 0; i < NH; i++) { let s = net.b1[i]; for (let j = 0; j < NIN; j++) s += net.W1[i * NIN + j] * x[j]; z[i] = s; h[i] = s > 0 ? s : 0; }
+    for (let k = 0; k < NOUT; k++) { let s = net.b2[k]; for (let i = 0; i < NH; i++) s += net.W2[k * NH + i] * h[i]; y[k] = s; }
+    return y;
+  }
+  const mse = (idx, XX) => { let s = 0; idx.forEach(i => { const o = fwd((XX || Xs)[i]); for (let k = 0; k < NOUT; k++) s += (o[k] - Ys[i][k]) ** 2; }); return s / (idx.length * NOUT); };
+  const trIdx = [...Array(nTr).keys()], vaIdx = [...Array(X.length - nTr).keys()].map(i => i + nTr);
+  const EPOCHS = 160, BATCH = 32, PER_FRAME = 4;
+  let ep = 0;
+  function epoch() {
+    for (let i = trIdx.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [trIdx[i], trIdx[j]] = [trIdx[j], trIdx[i]]; }
+    const lr = lr0 * (ep < 100 ? 1 : 0.3);
+    for (let s = 0; s < trIdx.length; s += BATCH) {
+      const batch = trIdx.slice(s, s + BATCH); params.forEach(p => G[p].fill(0));
+      batch.forEach(i => {
+        const x = Xs[i]; fwd(x);
+        const dy = [0, 0]; for (let k = 0; k < NOUT; k++) dy[k] = 2 * (y[k] - Ys[i][k]) / (batch.length * NOUT);
+        for (let k = 0; k < NOUT; k++) { G.b2[k] += dy[k]; for (let a = 0; a < NH; a++) G.W2[k * NH + a] += dy[k] * h[a]; }
+        for (let a = 0; a < NH; a++) {
+          if (z[a] <= 0) continue;
+          let dh = 0; for (let k = 0; k < NOUT; k++) dh += net.W2[k * NH + a] * dy[k];
+          G.b1[a] += dh; for (let j = 0; j < NIN; j++) G.W1[a * NIN + j] += dh * x[j];
+        }
+      });
+      step++;
+      params.forEach(p => { const w = net[p], g = G[p], m = M[p], v = V[p]; for (let i = 0; i < w.length; i++) { m[i] = b1 * m[i] + (1 - b1) * g[i]; v[i] = b2 * v[i] + (1 - b2) * g[i] * g[i]; const mh = m[i] / (1 - Math.pow(b1, step)), vh = v[i] / (1 - Math.pow(b2, step)); w[i] -= lr * mh / (Math.sqrt(vh) + 1e-8); } });
+    }
+    ep++;
+    AI.hist.tr.push(mse(trIdx)); AI.hist.va.push(mse(vaIdx));
+  }
+  function frame() {
+    for (let k = 0; k < PER_FRAME && ep < EPOCHS; k++) epoch();
+    $('#trainProg').style.width = (ep / EPOCHS * 100) + '%';
+    drawLoss();
+    if (ep < EPOCHS) { requestAnimationFrame(frame); return; }
+    // metrics on validation (real units)
+    const pred = vaIdx.map(i => { const o = fwd(Xs[i]); return [Math.exp(o[0] * ysd[0] + ymu[0]), Math.exp(o[1] * ysd[1] + ymu[1])]; });
+    const act = vaIdx.map(i => [Math.exp(Y[i][0]), Math.exp(Y[i][1])]);
+    const meanC = act.reduce((a, v) => a + v[0], 0) / act.length;
+    const ssRes = act.reduce((a, v, i) => a + (v[0] - pred[i][0]) ** 2, 0), ssTot = act.reduce((a, v) => a + (v[0] - meanC) ** 2, 0);
+    const mape = act.reduce((a, v, i) => a + Math.abs(v[0] - pred[i][0]) / v[0], 0) / act.length;
+    const logRes = act.map((v, i) => Math.log(v[0]) - Math.log(pred[i][0])); const rs = Math.sqrt(logRes.reduce((a, v) => a + v * v, 0) / logRes.length);
+    const mapeT = act.reduce((a, v, i) => a + Math.abs(v[1] - pred[i][1]) / v[1], 0) / act.length;
+    // permutation importance
+    const base = mse(vaIdx), pr = rng(9);
+    const imp = GROUPS.map(([name, cols]) => {
+      const perm = vaIdx.slice(); for (let i = perm.length - 1; i > 0; i--) { const j = Math.floor(pr() * (i + 1)); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+      const XP = Xs.map(x => x.slice()); vaIdx.forEach((i, k) => cols.forEach(c => { XP[i][c] = Xs[perm[k]][c]; }));
+      return { name, v: Math.max(0, mse(vaIdx, XP) - base) };
+    });
+    Object.assign(AI, { trained: true, training: false, fwd, mu, sd, ymu, ysd, r2: 1 - ssRes / ssTot, mape, mapeT, rs, imp });
+    $('#trainBtn').disabled = false; $('#trainBtn').textContent = 'Retrain model';
+    renderSummary(); renderCost();
+  }
+  requestAnimationFrame(frame);
+}
+$('#trainBtn').addEventListener('click', trainModel);
+
+function drawLoss() {
+  const tr = AI.hist.tr, va = AI.hist.va; if (!tr.length) { $('#lossChart').innerHTML = ''; return; }
+  const n = 160, xs = tr.map((_, i) => i + 1), ymax = Math.max(0.4, Math.min(1.2, Math.max(...tr.slice(0, 3), ...va.slice(0, 3)) * 1.05));
+  const yt = []; for (let v = 0; v <= ymax + 1e-9; v += ymax > 0.8 ? 0.2 : 0.1) yt.push(+v.toFixed(2));
+  lineChart($('#lossChart'), {
+    label: 'Training loss curve', xs, x0: 0, x1: n, y0: 0, y1: yt[yt.length - 1], h: 210, w: 320,
+    xTicks: [0, 40, 80, 120, 160], yTicks: yt, fx: v => v, fy: v => v.toFixed(1), fxTip: v => `Epoch ${v}`, fyTip: v => v.toFixed(3),
+    xLabel: 'Training epochs',
+    series: [{ name: 'Train', ys: tr.map(v => Math.min(v, yt[yt.length - 1])), cls: 'c-l1', dot: 'c-dot1', endDot: true }, { name: 'Validation', ys: va.map(v => Math.min(v, yt[yt.length - 1])), cls: 'c-l2', dot: 'c-dot2', endDot: true }]
+  });
+}
+
+function currentParams() {
+  const area = D.builtUp + (S.stilt ? D.foot * 0.6 : 0);
+  return { area, floors: D.levels, tier: S.tier, quality: S.quality, soil: S.soil, zone: S.zone, system: S.system };
+}
+function predictCurrent() {
+  const x = encode(currentParams()).map((v, j) => (v - AI.mu[j]) / AI.sd[j]);
+  const o = AI.fwd(x);
+  return { cost: Math.exp(o[0] * AI.ysd[0] + AI.ymu[0]), months: Math.exp(o[1] * AI.ysd[1] + AI.ymu[1]) };
+}
+
+function renderCost() {
+  drawLoss();
+  const badge = $('#aiBadge');
+  badge.className = 'ai-badge' + (AI.trained ? ' on' : '');
+  badge.querySelector('span').textContent = AI.trained ? 'trained' : AI.training ? 'training' : 'not trained';
+  const area = D.builtUp + (S.stilt ? D.foot * 0.6 : 0);
+  // materials (independent of AI)
+  const perSqft = S.system === 'masonry' ? { cement: 0.38, steel: 2.2 } : S.system === 'steel' ? { cement: 0.3, steel: 7.5 } : { cement: 0.4, steel: 4.0 };
+  const mats = [
+    ['Cement', area * perSqft.cement, 'bags (50 kg)', 420],
+    [S.system === 'steel' ? 'Steel (structural + rebar)' : 'TMT steel', area * perSqft.steel, 'kg', 70],
+    ['M-sand', area * 1.8, 'cft', 60],
+    ['Aggregate (20 mm)', area * 1.35, 'cft', 50],
+    ['Bricks', area * (S.system === 'masonry' ? 11 : 8), 'nos', 10],
+    ['Paint', area * 0.18, 'litres', 320],
+    ['Floor tiles', area * 1.3, 'ft²', 75]
+  ];
+  const matTotal = mats.reduce((s, m) => s + m[1] * m[3], 0);
+  $('#matTable').innerHTML = `<thead><tr><th>Material</th><th class="n">Quantity</th><th>Unit</th><th class="n">Rate (₹)</th><th class="n">Amount</th></tr></thead><tbody>${mats.map(m => `<tr><td>${m[0]}</td><td class="n">${fmt(m[1])}</td><td>${m[2]}</td><td class="n">${fmt(m[3])}</td><td class="n">${inr(m[1] * m[3])}</td></tr>`).join('')}<tr><td><b>Materials subtotal</b></td><td></td><td></td><td></td><td class="n"><b>${inr(matTotal)}</b></td></tr></tbody>`;
+  if (!AI.trained) {
+    $('#costBig').textContent = '—'; $('#costRange').textContent = AI.training ? 'the network is learning…' : 'train the model to predict';
+    $('#costFigs').innerHTML = ''; $('#costBars').innerHTML = ''; $('#impBars').innerHTML = ''; $('#gantt').innerHTML = '';
+    $('#aiMetrics').textContent = '';
+    return;
+  }
+  const p = predictCurrent(), lo = p.cost * Math.exp(-1.28 * AI.rs), hi = p.cost * Math.exp(1.28 * AI.rs);
+  $('#costBig').textContent = inr(p.cost);
+  $('#costRange').textContent = `likely ${inr(lo)} – ${inr(hi)} (80% range)`;
+  $('#aiMetrics').innerHTML = `Validation on 120 unseen projects: R² <b class="num">${AI.r2.toFixed(3)}</b> · average cost error <b class="num">±${(AI.mape * 100).toFixed(1)}%</b> · time error <b class="num">±${(AI.mapeT * 100).toFixed(1)}%</b>`;
+  $('#costFigs').innerHTML = [
+    ['Cost per ft²', `₹${fmt(p.cost / area)}`, `${fmt(area)} ft² built-up`],
+    ['Build time', `${p.months.toFixed(1)} months`, 'predicted by the same network'],
+    ['Materials share', `${fmt(matTotal / p.cost * 100)}%`, `${inr(matTotal)} of materials`],
+    ['Per floor', inr(p.cost / D.levels), `${D.levels} level${D.levels > 1 ? 's' : ''}`]
+  ].map(([k, v, s]) => `<div class="fig"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+  const split = [['Foundation & plinth', 0.12], ['RCC frame & slabs', 0.28], ['Masonry & plaster', 0.14], ['Flooring & tiling', 0.11], ['Doors & windows', 0.09], ['Plumbing & sanitary', 0.08], ['Electrical', 0.07], ['Painting & finishing', 0.07], ['Approvals & contingency', 0.04]];
+  barList($('#costBars'), split.map(([l, f]) => ({ l, v: f, t: inr(p.cost * f) })));
+  const impMax = Math.max(...AI.imp.map(i => i.v));
+  barList($('#impBars'), AI.imp.slice().sort((a, b) => b.v - a.v).map(i => ({ l: i.name, v: i.v, t: `${fmt(i.v / impMax * 100)}`, amber: true })), { max: impMax });
+  const m = p.months, phases = [['Approvals & soil test', 0, 0.08], ['Foundation', 0.08, 0.2], ['Structure (frame, slabs)', 0.18, 0.55], ['Brickwork & plaster', 0.42, 0.7], ['Plumbing & electrical', 0.55, 0.82], ['Flooring & finishing', 0.72, 1.0]];
+  const months = Math.ceil(m);
+  $('#gantt').innerHTML = phases.map(([n, a, b], k) => `<div class="gl">${n}</div><div class="gt" style="--m:${months}"><div class="gb${k === 2 ? ' amber' : ''}" style="left:${a * m / months * 100}%;width:${(b - a) * m / months * 100}%" title="${n}: month ${(a * m).toFixed(1)} to ${(b * m).toFixed(1)}"></div></div>`).join('') +
+    `<div class="gx">${Array.from({ length: Math.min(months, 12) + 1 }, (_, i) => `<span>${Math.round(i * months / Math.min(months, 12))}</span>`).join('')}</div>`;
+}
+
+/* =====================================================================
+   13. boot
+   ===================================================================== */
+syncControls();
+renderSummary();
+const hashSheet = (location.hash || '').replace('#', '');
+setSheet(['site', 'plan', 'model', 'safety', 'cost'].includes(hashSheet) ? hashSheet : 'site');
+window.BuildVerse = { S: () => S, D: () => D, setSheet, AI, set(o) { Object.assign(S, o); syncControls(); update(); } };
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) { /* not available here */ }
+}
+})();
+</script>
+</body>
+</html>
